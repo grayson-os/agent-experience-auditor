@@ -4,7 +4,7 @@ An automated, phased code quality and architectural review toolkit for OutSystem
 
 ## Purpose
 
-Traditional code reviews and manual Architecture Dashboard triages often happen late in the development lifecycle or miss nuanced logic flows (such as unescaped inline SQL parameters, aggregates inside loops, or upward architectural violations).
+Traditional code reviews and manual Code Quality triages often happen late in the development lifecycle or miss nuanced logic flows (such as unescaped inline SQL parameters, aggregates inside loops, or upward architectural violations).
 
 This toolkit provides:
 - **Direct Service Studio Inspection**: Interrogates module metadata, logic flows, entities, and dependencies in real time via the OutSystems Agent Experience MCP server.
@@ -28,10 +28,7 @@ This toolkit provides:
 ## Prerequisites
 
 1. **OutSystems 11 Service Studio**: Version supporting the OutSystems Agent Experience MCP endpoint.
-2. **Coding Agent / Client Supporting MCP**:
-   - [Cursor IDE](https://www.cursor.com/) (version 0.40+ or MCP-enabled build)
-   - [Claude Code CLI](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview)
-   - [Windsurf](https://codeium.com/windsurf) or any MCP-compliant agent runtime.
+2. **Coding Agent / Client Supporting MCP**
 3. An active OutSystems 11 environment connection inside Service Studio.
 
 ## Installation & Setup
@@ -50,7 +47,7 @@ Add the OutSystems MCP server entry:
 {
   "mcpServers": {
     "outsystems-local": {
-      "url": "[http://127.0.0.1](http://127.0.0.1):PORT/mcp"
+      "url": "http://127.0.0.1:PORT/mcp"
     }
   }
 }
@@ -59,7 +56,7 @@ Add the OutSystems MCP server entry:
 
 #### For Claude Code CLI (`~/.claude.json` or project configuration)
 ```bash
-claude mcp add outsystems-local [http://127.0.0.1](http://127.0.0.1):PORT/mcp
+claude mcp add outsystems-local http://127.0.0.1:PORT/mcp
 ```
 
 ### 3. Clone This Repository
@@ -72,7 +69,7 @@ cd outsystems-audit-agent
 
 ## Usage Instructions
 
-Always ensure the target module (`.oml`) is currently **open and focused in Service Studio** before running any audit skill. The MCP server reads from the active module state.
+Always ensure the target modules (`.oml`) are **open in Service Studio** before running any audit skill. The MCP server reads from the active module state.
 
 ### Phase-by-Phase Execution
 
@@ -127,7 +124,7 @@ The synthesis phase outputs a Markdown document containing:
 - **Executive Summary & Risk Distribution Matrix**: Quantified count of Critical, High, Medium, and Low risks by pillar.
 - **Prioritized Roadmap**: Sequenced checklist of mandatory refactors based on risk severity and implementation effort.
 - **Detailed Remediation Catalog**: Fully expanded technical findings grouped by pillar for developer handover.
-- **Platform Recommendations**: Systemic improvements (e.g., CI/CD governance, Architecture Dashboard rules, design system alignment).
+- **Platform Recommendations**: Systemic improvements (e.g., CI/CD governance, Code Quality rules, design system alignment).
 
 ## What to Do with the Outputs
 
