@@ -7,7 +7,7 @@ An automated, phased code quality and architectural review toolkit for OutSystem
 Traditional code reviews and manual Code Quality triages often happen late in the development lifecycle or miss nuanced logic flows (such as unescaped inline SQL parameters, aggregates inside loops, or upward architectural violations).
 
 This toolkit provides:
-- **Direct Service Studio Inspection**: Interrogates module metadata, logic flows, entities, and dependencies in real time via the OutSystems Agent Experience MCP server.
+- **Direct Service Studio Inspection**: Interrogates module metadata, logic flows, entities, and dependencies in real time via the [OutSystems Agent Experience](https://www.outsystems.com/platform/agent-experience) MCP server ([OutSystems/outsystems-mcp](https://github.com/OutSystems/outsystems-mcp)).
 - **Context-Preserving Multi-Turn Analysis**: Splits audits into five discrete markdown skills to prevent LLM context-window degradation and hallucinations.
 - **Actionable Remediation**: Produces structured findings with explicit Service Studio fix instructions rather than generic advice.
 
@@ -17,7 +17,7 @@ This toolkit provides:
 .
 ├── README.md
 └── .agent/
-    └── skills/
+    └── .skills/
         ├── 01-audit-architecture.md     # Canvas layers, references, boundary leaks
         ├── 02-audit-security.md         # OWASP, RBAC checks, injection vulnerabilities
         ├── 03-audit-performance.md      # Database I/O, queries in loops, caching
@@ -27,7 +27,7 @@ This toolkit provides:
 
 ## Prerequisites
 
-1. **OutSystems 11 Service Studio**: Version supporting the OutSystems Agent Experience MCP endpoint.
+1. **OutSystems 11 Service Studio**: Version supporting the OutSystems Agent Experience MCP endpoint. See the [OutSystems 11 MCP release notes](https://www.outsystems.com/product-updates/outsystems-11-mcp) and the official [OutSystems MCP repository](https://github.com/OutSystems/outsystems-mcp).
 2. **Coding Agent / Client Supporting MCP**
 3. An active OutSystems 11 environment connection inside Service Studio.
 
