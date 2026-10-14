@@ -1,0 +1,68 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check tag matches plugin.json version
+        run: |
+          version=$(jq -r .version .claude-plugin/plugin.json)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match plugin.json version $version"
+            exit 1
+          fi
+
+      - name: Validate plugin and marketplace
+        run: npx -y @anthropic-ai/claude-code@2.1.300 plugin validate --strict .
+
+      - name: Validate skill folders
+        run: |
+          status=0
+          for f in skills/*/SKILL.md; do
+            dir=$(basename "$(dirname "$f")")
+            name=$(sed -n 's/^name: *//p' "$f" | head -1)
+            if [ "$name" != "$dir" ]; then
+              echo "::error file=$f::name '$name' does not match folder '$dir'"
+              status=1
+            fi
+          done
+          exit $status
+
+      - name: Extract release notes from CHANGELOG.md
+        run: |
+          version=${GITHUB_REF_NAME#v}
+          awk -v v="$version" '
+            $0 ~ "^## \\[" v "\\]" { found = 1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "::error::CHANGELOG.md has no section for $version"
+            exit 1
+          fi
+
+      - name: Package skills
+        run: zip -r "os11-audit-skills-$GITHUB_REF_NAME.zip" skills
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file release-notes.md \
+            "os11-audit-skills-$GITHUB_REF_NAME.zip"

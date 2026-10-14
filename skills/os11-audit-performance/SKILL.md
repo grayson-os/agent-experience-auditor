@@ -1,6 +1,6 @@
 ---
-description: Run an OutSystems 11 query, memory, and database performance audit
-globs: *
+name: os11-audit-performance
+description: "Audits an OutSystems 11 module open in Service Studio for performance problems: queries inside For Each loops, unindexed filters, unbounded queries, oversized payloads, heavy session variables, binary data in core entities, and missing caching, via the Service Studio MCP server. Use when the user asks for an O11 performance review, a query or database audit, or the performance phase of a full O11 audit."
 ---
 
 # OutSystems 11 Performance Audit Skill
@@ -9,6 +9,8 @@ globs: *
 You are an OutSystems Performance Tuning Engineer. Inspect data access, logic flow efficiency, and payload sizing via the OutSystems MCP tool.
 
 ## Inspection Workflow
+**Read-only:** This audit only reads the module. Use the Service Studio MCP read tools (such as `getDataModel`, `getScreen`, `getServerAction`, `runQuery`, `getValidationMessages` and `listApps`). Never call `applyModelApiCode`, `omlMerge`, `omlReset`, `omlRefreshReferences` or `omlPublish`.
+
 1. Use MCP tools to extract:
    - Aggregates and Advanced SQL nodes within all Server Actions, Data Actions, and Preparations.
    - Iteration structures (`For Each` loops).

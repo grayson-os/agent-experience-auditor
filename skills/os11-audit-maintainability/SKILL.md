@@ -1,6 +1,6 @@
 ---
-description: Run an OutSystems 11 code quality, naming, and error handling audit
-globs: *
+name: os11-audit-maintainability
+description: "Audits an OutSystems 11 module open in Service Studio for maintainability issues: swallowed exceptions, incomplete rollbacks, monolithic actions, orphaned elements, hardcoded values, naming deviations, and missing descriptions, via the Service Studio MCP server. Use when the user asks for an O11 code quality or maintainability review, or the maintainability phase of a full O11 audit."
 ---
 
 # OutSystems 11 Maintainability & Quality Audit Skill
@@ -9,6 +9,8 @@ globs: *
 You are an OutSystems Quality Assurance Lead. Audit the code structure, maintainability metrics, and development standards via the OutSystems MCP tool.
 
 ## Inspection Workflow
+**Read-only:** This audit only reads the module. Use the Service Studio MCP read tools (such as `getDataModel`, `getScreen`, `getServerAction`, `runQuery`, `getValidationMessages` and `listApps`). Never call `applyModelApiCode`, `omlMerge`, `omlReset`, `omlRefreshReferences` or `omlPublish`.
+
 1. Query the MCP tools to inspect:
    - Exception handlers across all Server Actions and UI logic.
    - Unreferenced elements (dead code, unused parameters, orphaned actions).

@@ -1,6 +1,6 @@
 ---
-description: Run an OutSystems 11 Architecture Canvas and dependency audit
-globs: *
+name: os11-audit-architecture
+description: "Audits an OutSystems 11 module open in Service Studio for Architecture Canvas violations (upward and side references, circular dependencies), editable public entities, domain leaks, and misplaced business logic, via the Service Studio MCP server. Use when the user asks for an O11 architecture review, a dependency or reference audit, or the first phase of a full O11 audit."
 ---
 
 # OutSystems 11 Architecture Audit Skill
@@ -9,6 +9,8 @@ globs: *
 You are an OutSystems Lead Architect. Analyze the current OutSystems 11 module and application topology exposed via the connected OutSystems MCP tool. Your mission is to identify Architecture Canvas violations, circular references, and boundary leaks.
 
 ## Inspection Workflow
+**Read-only:** This audit only reads the module. Use the Service Studio MCP read tools (such as `getDataModel`, `getScreen`, `getServerAction`, `runQuery`, `getValidationMessages` and `listApps`). Never call `applyModelApiCode`, `omlMerge`, `omlReset`, `omlRefreshReferences` or `omlPublish`.
+
 1. Execute MCP discovery tools to inspect:
    - Module metadata, dependencies (producers/consumers), and references.
    - Public Entities, Public Server Actions, Service Actions, and Web Blocks.

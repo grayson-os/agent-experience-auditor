@@ -1,0 +1,15 @@
+{
+  "name": "agent-experience-auditor",
+  "description": "OutSystems 11 audit skills for the Service Studio MCP server.",
+  "owner": {
+    "name": "Grayson Udstrand",
+    "url": "https://github.com/grayson-os"
+  },
+  "plugins": [
+    {
+      "name": "os11-audit",
+      "source": "./",
+      "description": "Phased architecture, security, performance, and maintainability audits of OutSystems 11 modules, plus a report synthesizer."
+    }
+  ]
+}

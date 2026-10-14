@@ -1,106 +1,194 @@
 # OutSystems 11 Agentic Review Suite (MCP)
 
-An automated, phased code quality and architectural review toolkit for OutSystems 11 (O11). This repository packages specialized Model Context Protocol (MCP) audit skills that interface directly with OutSystems Service Studio to inspect active eSpace modules across five pillars: Architecture, Security, Performance, Maintainability, and Executive Reporting.
+An automated, phased code quality and architectural review toolkit for OutSystems 11 (O11). This repository packages five [Agent Skills](https://agentskills.io) that use the [OutSystems 11 MCP](https://github.com/OutSystems/outsystems11-mcp) server embedded in Service Studio to inspect the module you have open across five pillars: Architecture, Security, Performance, Maintainability, and Executive Reporting.
 
 ## Purpose
 
 Traditional code reviews and manual Code Quality triages often happen late in the development lifecycle or miss nuanced logic flows (such as unescaped inline SQL parameters, aggregates inside loops, or upward architectural violations).
 
 This toolkit provides:
-- **Direct Service Studio Inspection**: Interrogates module metadata, logic flows, entities, and dependencies in real time via the [OutSystems Agent Experience](https://www.outsystems.com/platform/agent-experience) MCP server ([OutSystems/outsystems-mcp](https://github.com/OutSystems/outsystems-mcp)).
-- **Context-Preserving Multi-Turn Analysis**: Splits audits into five discrete markdown skills to prevent LLM context-window degradation and hallucinations.
+- **Direct Service Studio Inspection**: Interrogates module metadata, logic flows, entities, and dependencies in real time through the Service Studio MCP server, part of [OutSystems Agent Experience](https://www.outsystems.com/platform/agent-experience).
+- **Context-Preserving Multi-Turn Analysis**: Splits audits into five discrete skills to prevent LLM context-window degradation and hallucinations.
 - **Actionable Remediation**: Produces structured findings with explicit Service Studio fix instructions rather than generic advice.
+- **Read-Only Audits**: The audit skills use only the MCP read tools and never modify, merge, or publish your module.
+
+## Included Skills
+
+| Skill | Phase | What it checks |
+| :--- | :--- | :--- |
+| `os11-audit-architecture` | 1 | Architecture Canvas layers, upward/side/circular references, entity exposure, logic placement |
+| `os11-audit-security` | 2 | Role checks on public actions, multi-tenancy, SQL injection, XSS, unauthenticated APIs, sensitive data |
+| `os11-audit-performance` | 3 | Queries in loops, indexes, unbounded queries, payload size, session state, caching |
+| `os11-audit-maintainability` | 4 | Exception handling, dead code, monolithic actions, hardcoded values, naming |
+| `os11-audit-report` | 5 | Combines the findings from phases 1–4 into an executive client report |
 
 ## Repository Structure
 
 ```text
 .
-├── README.md
-└── .agent/
-    └── .skills/
-        ├── 01-audit-architecture.md     # Canvas layers, references, boundary leaks
-        ├── 02-audit-security.md         # OWASP, RBAC checks, injection vulnerabilities
-        ├── 03-audit-performance.md      # Database I/O, queries in loops, caching
-        ├── 04-audit-maintainability.md  # Exception handling, dead logic, conventions
-        └── 05-audit-synthesizer.md      # Aggregates findings into executive client deliverables
+├── .claude-plugin/
+│   ├── plugin.json         # Claude Code plugin manifest (holds the release version)
+│   └── marketplace.json    # Lets Claude Code install the plugin straight from this repo
+├── .github/workflows/
+│   └── release.yml         # Publishes a GitHub release for each vX.Y.Z tag
+├── skills/
+│   ├── os11-audit-architecture/SKILL.md     # Canvas layers, references, boundary leaks
+│   ├── os11-audit-security/SKILL.md         # OWASP, RBAC checks, injection vulnerabilities
+│   ├── os11-audit-performance/SKILL.md      # Database I/O, queries in loops, caching
+│   ├── os11-audit-maintainability/SKILL.md  # Exception handling, dead logic, conventions
+│   └── os11-audit-report/SKILL.md           # Aggregates findings into executive client deliverables
+├── CHANGELOG.md
+└── README.md
 ```
 
 ## Prerequisites
 
-1. **OutSystems 11 Service Studio**: Version supporting the OutSystems Agent Experience MCP endpoint. See the [OutSystems 11 MCP release notes](https://www.outsystems.com/product-updates/outsystems-11-mcp) and the official [OutSystems MCP repository](https://github.com/OutSystems/outsystems-mcp).
-2. **Coding Agent / Client Supporting MCP**
-3. An active OutSystems 11 environment connection inside Service Studio.
+1. **Service Studio 11.55.91 or later**, which embeds the OutSystems 11 MCP server. See the [OutSystems 11 MCP documentation](https://success.outsystems.com/documentation/11/outsystems_mcp/).
+2. **An MCP-compatible coding agent**, such as Claude Code, Cursor, GitHub Copilot, Codex, Kiro, or Google Antigravity.
+3. **Node.js** (for `npx`), only if you install with the cross-agent installer.
 
-## Installation & Setup
+## Installation
 
-### 1. Enable OutSystems MCP in Service Studio
-1. Open **Service Studio**.
-2. Navigate to **Preferences** (or **Experimental Features** / **Agent Experience**, depending on your release build).
-3. Enable the **Agent Experience MCP Server**. Note the local loopback port (default is typically `127.0.0.1:PORT/mcp` or a named pipe).
+Installation has two parts: connect your agent to the Service Studio MCP server, then install the skills.
 
-### 2. Configure Your Agent Client
+### 1. Start the MCP Server in Service Studio
 
-#### For Cursor (`~/.cursor/mcp.json` or project `.cursor/mcp.json`)
-Add the OutSystems MCP server entry:
+The server does not start automatically. Start it each session from the module you want to audit:
+
+1. Open the module in Service Studio.
+2. Go to **Edit > MCP Configuration...**.
+3. Confirm the **MCP server port** (default `41820`) and click **Start MCP Server**.
+
+The dialog shows the server URL. If port `41820` is taken, Service Studio picks another port, so use the URL the dialog shows in the steps below.
+
+### 2. Register the MCP Server in Your Agent
+
+**Claude Code:**
+
+```bash
+claude mcp add --transport http servicestudio http://127.0.0.1:41820/mcp --scope user
+```
+
+**Cursor** (`.cursor/mcp.json` in your project, or `~/.cursor/mcp.json` for all projects):
 
 ```json
 {
   "mcpServers": {
-    "outsystems-local": {
-      "url": "http://127.0.0.1:PORT/mcp"
+    "servicestudio": {
+      "url": "http://127.0.0.1:41820/mcp"
     }
   }
 }
 ```
-*(Replace `PORT` with the actual port shown in Service Studio).*
 
-#### For Claude Code CLI (`~/.claude.json` or project configuration)
-```bash
-claude mcp add outsystems-local http://127.0.0.1:PORT/mcp
+**Other agents:** follow the per-agent guides in the official [OutSystems/outsystems11-mcp setup docs](https://github.com/OutSystems/outsystems11-mcp/tree/main/setup-docs).
+
+The first time your agent calls the server, Service Studio shows an **Allow AI agent to connect?** prompt. Approve it only for a session you started.
+
+> **Recommended:** also install the official [`servicestudio-mcp-oml`](https://github.com/OutSystems/outsystems11-mcp) skill. It teaches your agent the Service Studio MCP tool catalog, which helps the audits call the right read tools.
+
+### 3. Install the Audit Skills
+
+#### Claude Code (plugin)
+
+In a Claude Code session (version 2.1.275 or later):
+
+```text
+/plugin install os11-audit --marketplace grayson-os/agent-experience-auditor
 ```
 
-### 3. Clone This Repository
-Clone or copy this folder structure into your local working workspace:
+Or from your shell, on any version that supports plugins:
 
 ```bash
-git clone <your-repo-url> outsystems-audit-agent
-cd outsystems-audit-agent
+claude plugin marketplace add grayson-os/agent-experience-auditor
+claude plugin install os11-audit@agent-experience-auditor
 ```
+
+Restart Claude Code, then run `/plugin` to confirm `os11-audit` is installed with five skills. If you have no GitHub SSH key and the install fails, set `CLAUDE_CODE_PLUGIN_PREFER_HTTPS=1` and try again.
+
+#### Cursor, Copilot, Codex, Kiro, and Other Agents
+
+Use the cross-agent [`skills`](https://github.com/vercel-labs/skills) installer, which writes the skills to the right folder for each agent:
+
+```bash
+# Current project only
+npx skills add grayson-os/agent-experience-auditor
+
+# All projects for one agent (for example, Cursor)
+npx skills add grayson-os/agent-experience-auditor -g -a cursor
+```
+
+Start a new agent session afterward. Agents discover skills only when a session starts.
+
+#### Manual Install
+
+Download the `os11-audit-skills-vX.Y.Z.zip` asset from the [latest release](https://github.com/grayson-os/agent-experience-auditor/releases/latest) and copy each folder under `skills/` into your agent's skills directory, keeping the folder names unchanged:
+
+| Agent | Project path | Global path |
+| :--- | :--- | :--- |
+| Claude Code | `.claude/skills/` | `~/.claude/skills/` |
+| Cursor | `.cursor/skills/` or `.agents/skills/` | `~/.cursor/skills/` |
+| Codex | `.agents/skills/` | `~/.codex/skills/` |
+| Kiro | `.kiro/skills/` | `~/.kiro/skills/` |
+
+## Updating
+
+Each release is a `vX.Y.Z` git tag with a matching [GitHub release](https://github.com/grayson-os/agent-experience-auditor/releases) and [CHANGELOG](CHANGELOG.md) entry.
+
+| Installed with | Update command |
+| :--- | :--- |
+| Claude Code plugin | `claude plugin marketplace update agent-experience-auditor`, then `claude plugin update os11-audit@agent-experience-auditor`, then restart Claude Code |
+| `npx skills` | `npx skills update` (add `-g` for global installs) |
+| Manual copy | Download the new release zip and replace the folders |
+
+Claude Code users can also turn on automatic updates: run `/plugin`, open **Marketplaces**, select `agent-experience-auditor`, and choose **Enable auto-update**.
+
+### Pinning a Release
+
+To stay on one version instead of tracking the latest release, install from its tag:
+
+```bash
+# Claude Code
+claude plugin marketplace add grayson-os/agent-experience-auditor#v1.0.0
+
+# Other agents
+npx skills add https://github.com/grayson-os/agent-experience-auditor/tree/v1.0.0
+```
+
+To move to a newer pinned version, remove the old install and repeat with the new tag.
 
 ## Usage Instructions
 
-Always ensure the target modules (`.oml`) are **open in Service Studio** before running any audit skill. The MCP server reads from the active module state.
+Always ensure the target module (`.oml`) is **open in Service Studio with its MCP server started** before running any audit skill. The MCP server reads from the active module state.
 
 ### Phase-by-Phase Execution
 
-Run each audit phase in an isolated prompt or agent session to preserve model context:
+Run each audit phase in an isolated agent session to preserve model context. In Claude Code, invoke a skill with `/os11-audit:<skill-name>`. In other agents, invoke it with `/<skill-name>` where supported, or name the skill in your prompt.
 
 #### Step 1: Architecture Review
-In your agent chat interface:
 ```text
-@01-audit-architecture.md Run the Architecture Audit on the currently open module and output all findings.
+/os11-audit:os11-audit-architecture Run the Architecture Audit on the currently open module and output all findings.
 ```
 
 #### Step 2: Security Review
-In a new or continuing session:
 ```text
-@02-audit-security.md Run the Security Audit on the open module. Focus on exposed endpoints, injection risks, and role authorization.
+/os11-audit:os11-audit-security Run the Security Audit on the open module. Focus on exposed endpoints, injection risks, and role authorization.
 ```
 
 #### Step 3: Performance Review
 ```text
-@03-audit-performance.md Inspect queries, loop executions, table indexes, and payload allocations on the open module.
+/os11-audit:os11-audit-performance Inspect queries, loop executions, table indexes, and payload allocations on the open module.
 ```
 
 #### Step 4: Maintainability Review
 ```text
-@04-audit-maintainability.md Evaluate exception handling paths, naming standards, and unreferenced/orphaned elements.
+/os11-audit:os11-audit-maintainability Evaluate exception handling paths, naming standards, and unreferenced/orphaned elements.
 ```
 
 #### Step 5: Report Synthesis
-Feed the outputs from Steps 1–4 into the synthesizer skill:
+Feed the outputs from Steps 1–4 into the report skill:
 ```text
-@05-audit-synthesizer.md Compile all previously generated audit findings into the final client deliverable report.
+/os11-audit:os11-audit-report Compile all previously generated audit findings into the final client deliverable report.
 ```
 
 ## Expected Outputs
@@ -158,5 +246,16 @@ Assign findings to developers. Developers can open the affected module in Servic
 
 ### 4. Verification Run
 After 1-Click Publishing the remediations in Service Studio:
-- Re-run the specific skill file (e.g., `@03-audit-performance.md`) against the modified module.
+- Re-run the specific audit skill (e.g., `os11-audit-performance`) against the modified module.
 - Confirm that the previously flagged issues no longer appear in the agent output before marking work as resolved.
+
+## Releasing (Maintainers)
+
+Claude Code only delivers an update when the `version` in `.claude-plugin/plugin.json` changes, so every release needs a version bump.
+
+1. Bump `version` in `.claude-plugin/plugin.json` following [Semantic Versioning](https://semver.org/).
+2. Add a `## [X.Y.Z] - YYYY-MM-DD` section to `CHANGELOG.md`.
+3. Run `claude plugin validate --strict .` and fix anything it reports.
+4. Commit, then tag and push: `git tag vX.Y.Z && git push origin main vX.Y.Z`.
+
+The [release workflow](.github/workflows/release.yml) checks that the tag matches `plugin.json`, validates the plugin and skills, and publishes a GitHub release with the changelog notes and a zip of the skills.
