@@ -9,5 +9,13 @@
   },
   "homepage": "https://github.com/grayson-os/agent-experience-auditor",
   "repository": "https://github.com/grayson-os/agent-experience-auditor",
-  "keywords": ["outsystems", "outsystems-11", "service-studio", "mcp", "audit", "code-review"]
+  "keywords": [
+    "outsystems",
+    "outsystems-11",
+    "service-studio",
+    "mcp",
+    "audit",
+    "code-review"
+  ],
+  "license": "MIT"
 }

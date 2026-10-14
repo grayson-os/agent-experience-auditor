@@ -1,6 +1,7 @@
 ---
 name: os11-audit-maintainability
 description: "Audits an OutSystems 11 module open in Service Studio for maintainability issues: swallowed exceptions, incomplete rollbacks, monolithic actions, orphaned elements, hardcoded values, naming deviations, and missing descriptions, via the Service Studio MCP server. Use when the user asks for an O11 code quality or maintainability review, or the maintainability phase of a full O11 audit."
+license: MIT
 ---
 
 # OutSystems 11 Maintainability & Quality Audit Skill

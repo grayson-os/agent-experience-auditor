@@ -1,6 +1,7 @@
 ---
 name: os11-audit-performance
 description: "Audits an OutSystems 11 module open in Service Studio for performance problems: queries inside For Each loops, unindexed filters, unbounded queries, oversized payloads, heavy session variables, binary data in core entities, and missing caching, via the Service Studio MCP server. Use when the user asks for an O11 performance review, a query or database audit, or the performance phase of a full O11 audit."
+license: MIT
 ---
 
 # OutSystems 11 Performance Audit Skill

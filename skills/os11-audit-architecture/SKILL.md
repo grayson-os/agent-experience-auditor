@@ -1,6 +1,7 @@
 ---
 name: os11-audit-architecture
 description: "Audits an OutSystems 11 module open in Service Studio for Architecture Canvas violations (upward and side references, circular dependencies), editable public entities, domain leaks, and misplaced business logic, via the Service Studio MCP server. Use when the user asks for an O11 architecture review, a dependency or reference audit, or the first phase of a full O11 audit."
+license: MIT
 ---
 
 # OutSystems 11 Architecture Audit Skill

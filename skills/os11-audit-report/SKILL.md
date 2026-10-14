@@ -1,6 +1,7 @@
 ---
 name: os11-audit-report
 description: "Compiles the findings from the OutSystems 11 architecture, security, performance, and maintainability audits into one executive-ready client report with a risk matrix, a prioritized remediation roadmap, detailed findings, and strategic recommendations. Use when the user asks to synthesize, consolidate, or write up O11 audit findings into a final report."
+license: MIT
 ---
 
 # OutSystems 11 Audit Report Synthesizer

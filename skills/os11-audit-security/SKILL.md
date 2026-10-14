@@ -1,6 +1,7 @@
 ---
 name: os11-audit-security
 description: "Audits an OutSystems 11 module open in Service Studio for security risks: unprotected public and service actions, missing role checks, multi-tenant isolation gaps, SQL injection through Expand Inline parameters, XSS through Escape Content = No, unauthenticated REST APIs, and exposed sensitive data, via the Service Studio MCP server. Use when the user asks for an O11 security review, an OWASP audit, or the security phase of a full O11 audit."
+license: MIT
 ---
 
 # OutSystems 11 Security Audit Skill

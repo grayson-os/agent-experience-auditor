@@ -38,6 +38,7 @@ This toolkit provides:
 │   ├── os11-audit-maintainability/SKILL.md  # Exception handling, dead logic, conventions
 │   └── os11-audit-report/SKILL.md           # Aggregates findings into executive client deliverables
 ├── CHANGELOG.md
+├── LICENSE
 └── README.md
 ```
 
@@ -259,3 +260,7 @@ Claude Code only delivers an update when the `version` in `.claude-plugin/plugin
 4. Commit, then tag and push: `git tag vX.Y.Z && git push origin main vX.Y.Z`.
 
 The [release workflow](.github/workflows/release.yml) checks that the tag matches `plugin.json`, validates the plugin and skills, and publishes a GitHub release with the changelog notes and a zip of the skills.
+
+## License
+
+Released under the [MIT License](LICENSE).
