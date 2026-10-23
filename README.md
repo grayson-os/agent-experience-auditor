@@ -10,6 +10,7 @@ This toolkit provides:
 - **Direct Service Studio Inspection**: Interrogates module metadata, logic flows, entities, and dependencies in real time through the Service Studio MCP server, part of [OutSystems Agent Experience](https://www.outsystems.com/platform/agent-experience).
 - **Context-Preserving Multi-Turn Analysis**: Splits audits into five discrete skills to prevent LLM context-window degradation and hallucinations.
 - **Actionable Remediation**: Produces structured findings with explicit Service Studio fix instructions rather than generic advice.
+- **Platform-Aware Findings**: A shared, sourced [platform baseline](shared/os11-platform-baseline.md) tells each audit what OutSystems 11 already provides, such as login throttling, CSRF tokens, and parameterized Aggregates. Each audit reports a gap only when it finds a bypass, and lists what it couldn't verify instead of guessing.
 - **Read-Only Audits**: The audit skills use only the MCP read tools and never modify, merge, or publish your module.
 
 ## Included Skills
@@ -35,12 +36,19 @@ This toolkit provides:
 │   ├── os11-audit-architecture/
 │   │   ├── SKILL.md                         # Canvas layers, references, boundary leaks
 │   │   ├── references/canvas-diagram.md     # Layer/sub-layer classification and diagram steps
+│   │   ├── references/platform-baseline.md  # Synced copy of the platform baseline (also in the other audit skills)
 │   │   ├── scripts/render_canvas.py         # Renders the Canvas diagram as SVG and detects violations
 │   │   └── assets/example-canvas.json       # Example diagram model
 │   ├── os11-audit-security/SKILL.md         # OWASP, RBAC checks, injection vulnerabilities
 │   ├── os11-audit-performance/SKILL.md      # Database I/O, queries in loops, caching
 │   ├── os11-audit-maintainability/SKILL.md  # Exception handling, dead logic, conventions
 │   └── os11-audit-report/SKILL.md           # Aggregates findings into executive client deliverables
+├── shared/
+│   └── os11-platform-baseline.md  # Source of truth for platform controls, bypasses, and MCP blind spots
+├── scripts/
+│   └── sync_baseline.py           # Copies the baseline into each audit skill; --check fails on drift
+├── evals/
+│   └── scenarios.md               # Test scenarios for platform-aware findings
 ├── CHANGELOG.md
 ├── LICENSE
 └── README.md
@@ -206,6 +214,9 @@ Each audit skill produces standardized findings using unique tracking IDs and st
 ### [SEC-004] [SEVERITY: High] Unchecked Role Authorization on Public Action
 - **Vulnerability Category**: Broken Function Level Authorization
 - **Target Location**: Order_CS -> Action: Order_PurgeArchivedRecords
+- **Evidence**: getServerAction(Order_PurgeArchivedRecords) shows a SQL node deleting from Order with no Check<Role>Role or GetUserId() check before it.
+- **Confidence**: Confirmed
+- **Platform control considered**: SEC-AUTHZ. The platform adds no role checks inside server actions, and screen roles don't protect a Public action.
 - **Exploitation Vector**: Action is flagged as Public with Expose Read Only = No logic, but lacks a CheckAdminRole check or tenant-boundary validation.
 - **Service Studio Remediation**: 
   1. Open Order_CS > Logic > Server Actions > Order_PurgeArchivedRecords.
@@ -213,12 +224,18 @@ Each audit skill produces standardized findings using unique tracking IDs and st
   3. Raise a SecurityException if CheckAdminRole.HasRole is False.
 ```
 
+Each audit also starts with an **Audit Context** section (app type, authentication, platform version) and ends with two sections:
+- **Platform Controls Relied On**: protections the platform provides that the audit checked and found intact, so they weren't reported as gaps.
+- **Verify in Environment**: settings the MCP can't see, such as HTTPS, HSTS, and the brute-force protection switches in Service Center, with where to check each one.
+
 ### 2. Consolidated Executive Report (Step 5)
 The synthesis phase outputs a Markdown document containing:
-- **Executive Summary & Risk Distribution Matrix**: Quantified count of Critical, High, Medium, and Low risks by pillar.
+- **Executive Summary & Risk Distribution Matrix**: Quantified count of Critical, High, Medium, and Low risks by pillar, with how many are Likely rather than Confirmed, and one sentence on what the audit couldn't inspect.
 - **Architecture Canvas Map**: An SVG diagram of the modules on the End User, Core, and Foundation layers, stacked in one column with each layer split into its sub-layers, with arrows for each reference and violations highlighted in red. The report embeds it from `os11-audit/architecture-canvas.svg`, so it shows in GitHub, GitLab, VS Code, and other Markdown viewers; in a terminal you see a text summary instead.
 - **Prioritized Roadmap**: Sequenced checklist of mandatory refactors based on risk severity and implementation effort.
 - **Detailed Remediation Catalog**: Fully expanded technical findings grouped by pillar for developer handover.
+- **Platform-Provided Controls**: The OutSystems protections the application relies on, and the warning that they hold only while the team doesn't bypass them.
+- **Environment Checks**: A checklist of Service Center, LifeTime, and identity-provider settings for the platform administrator to confirm.
 - **Platform Recommendations**: Systemic improvements (e.g., CI/CD governance, Code Quality rules, design system alignment).
 
 ## What to Do with the Outputs
@@ -237,7 +254,8 @@ The synthesis phase outputs a Markdown document containing:
 
 ### 1. Triage and Risk Calibration
 - **Review Critical/High Items**: Focus first on `[SEC-###]` and `[ARCH-###]` findings with `High` or `Critical` severity. Confirm whether flagged SQL queries or exposed actions have compensating controls outside the inspected module (e.g., API Gateway policies, enterprise network restrictions).
-- **Check False Positives**: Verify if an unindexed filter attribute runs against a table guaranteed to remain under 100 rows (e.g., a non-changing configuration table).
+- **Check False Positives**: Verify if an unindexed filter attribute runs against a table guaranteed to remain under 100 rows (e.g., a non-changing configuration table). Start with findings marked `Likely`, which depend on context the audit couldn't see.
+- **Work Through Environment Checks**: Give the Environment Checks list to whoever administers Service Center and LifeTime. An unchecked item there is an open question, not a finding.
 
 ### 2. Ticket Creation & Backlog Integration
 Convert each finding into a task or bug in your tracking tool (e.g., Jira, Azure DevOps):
@@ -270,6 +288,19 @@ npx skills add /path/to/agent-experience-auditor
 npx skills add https://github.com/grayson-os/agent-experience-auditor/tree/<branch>
 ```
 
+### Editing the Platform Baseline
+
+Edit only `shared/os11-platform-baseline.md`. Each entry cites the OutSystems documentation it is based on; keep that link current when you change an entry. Then copy it into the skills:
+
+```bash
+python3 scripts/sync_baseline.py          # update the copies in skills/*/references/
+python3 scripts/sync_baseline.py --check  # what the release workflow runs
+```
+
+After changing an entry, re-run the matching scenarios in [`evals/scenarios.md`](evals/scenarios.md).
+
+### Checking the Canvas Diagram
+
 To check the Canvas diagram without Service Studio, render the example model and open the SVG in a browser:
 
 ```bash
@@ -283,10 +314,10 @@ Claude Code only delivers an update when the `version` in `.claude-plugin/plugin
 
 1. Bump `version` in `.claude-plugin/plugin.json` following [Semantic Versioning](https://semver.org/).
 2. Add a `## [X.Y.Z] - YYYY-MM-DD` section to `CHANGELOG.md`.
-3. Run `claude plugin validate --strict .` and fix anything it reports.
+3. Run `claude plugin validate --strict .` and `python3 scripts/sync_baseline.py --check`, and fix anything they report.
 4. Commit and push `main`, then tag and push the tag in a separate push: `git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin vX.Y.Z`.
 
-The [release workflow](.github/workflows/release.yml) checks that the tag matches `plugin.json`, validates the plugin and skills, and publishes a GitHub release with the changelog notes and a zip of the skills.
+The [release workflow](.github/workflows/release.yml) checks that the tag matches `plugin.json`, validates the plugin and skills, checks that the baseline copies are in sync, and publishes a GitHub release with the changelog notes and a zip of the skills.
 
 ## License
 
