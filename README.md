@@ -16,11 +16,11 @@ This toolkit provides:
 
 | Skill | Phase | What it checks |
 | :--- | :--- | :--- |
-| `os11-audit-architecture` | 1 | Architecture Canvas layers, upward/side/circular references, entity exposure, logic placement |
+| `os11-audit-architecture` | 1 | Architecture Canvas layers, upward/side/circular references, entity exposure, logic placement. Draws a Canvas diagram of module references |
 | `os11-audit-security` | 2 | Role checks on public actions, multi-tenancy, SQL injection, XSS, unauthenticated APIs, sensitive data |
 | `os11-audit-performance` | 3 | Queries in loops, indexes, unbounded queries, payload size, session state, caching |
 | `os11-audit-maintainability` | 4 | Exception handling, dead code, monolithic actions, hardcoded values, naming |
-| `os11-audit-report` | 5 | Combines the findings from phases 1–4 into an executive client report |
+| `os11-audit-report` | 5 | Combines the findings from phases 1–4 into an executive client report, including the Canvas diagram |
 
 ## Repository Structure
 
@@ -32,7 +32,11 @@ This toolkit provides:
 ├── .github/workflows/
 │   └── release.yml         # Publishes a GitHub release for each vX.Y.Z tag
 ├── skills/
-│   ├── os11-audit-architecture/SKILL.md     # Canvas layers, references, boundary leaks
+│   ├── os11-audit-architecture/
+│   │   ├── SKILL.md                         # Canvas layers, references, boundary leaks
+│   │   ├── references/canvas-diagram.md     # Layer/sub-layer classification and diagram steps
+│   │   ├── scripts/render_canvas.py         # Renders the Canvas diagram as SVG and detects violations
+│   │   └── assets/example-canvas.json       # Example diagram model
 │   ├── os11-audit-security/SKILL.md         # OWASP, RBAC checks, injection vulnerabilities
 │   ├── os11-audit-performance/SKILL.md      # Database I/O, queries in loops, caching
 │   ├── os11-audit-maintainability/SKILL.md  # Exception handling, dead logic, conventions
@@ -46,7 +50,8 @@ This toolkit provides:
 
 1. **Service Studio 11.55.91 or later**, which embeds the OutSystems 11 MCP server. See the [OutSystems 11 MCP documentation](https://success.outsystems.com/documentation/11/outsystems_mcp/).
 2. **An MCP-compatible coding agent**, such as Claude Code, Cursor, GitHub Copilot, Codex, Kiro, or Google Antigravity.
-3. **Node.js** (for `npx`), only if you install with the cross-agent installer.
+3. **Python 3.8 or later** (standard library only), so the architecture audit can render its Canvas diagram. Without it, the audit still runs but skips the diagram.
+4. **Node.js** (for `npx`), only if you install with the cross-agent installer.
 
 ## Installation
 
@@ -211,6 +216,7 @@ Each audit skill produces standardized findings using unique tracking IDs and st
 ### 2. Consolidated Executive Report (Step 5)
 The synthesis phase outputs a Markdown document containing:
 - **Executive Summary & Risk Distribution Matrix**: Quantified count of Critical, High, Medium, and Low risks by pillar.
+- **Architecture Canvas Map**: An SVG diagram of the modules on the End User, Core, and Foundation layers, stacked in one column with each layer split into its sub-layers, with arrows for each reference and violations highlighted in red. The report embeds it from `os11-audit/architecture-canvas.svg`, so it shows in GitHub, GitLab, VS Code, and other Markdown viewers; in a terminal you see a text summary instead.
 - **Prioritized Roadmap**: Sequenced checklist of mandatory refactors based on risk severity and implementation effort.
 - **Detailed Remediation Catalog**: Fully expanded technical findings grouped by pillar for developer handover.
 - **Platform Recommendations**: Systemic improvements (e.g., CI/CD governance, Code Quality rules, design system alignment).
@@ -250,6 +256,27 @@ After 1-Click Publishing the remediations in Service Studio:
 - Re-run the specific audit skill (e.g., `os11-audit-performance`) against the modified module.
 - Confirm that the previously flagged issues no longer appear in the agent output before marking work as resolved.
 
+## Testing Changes Locally (Maintainers)
+
+Test a branch without publishing a release:
+
+```bash
+# Claude Code: load the plugin from your working copy for one session.
+# It replaces an installed os11-audit for that session only.
+claude --plugin-dir /path/to/agent-experience-auditor
+
+# Other agents: install the skills from your working copy (or a pushed branch).
+npx skills add /path/to/agent-experience-auditor
+npx skills add https://github.com/grayson-os/agent-experience-auditor/tree/<branch>
+```
+
+To check the Canvas diagram without Service Studio, render the example model and open the SVG in a browser:
+
+```bash
+python3 skills/os11-audit-architecture/scripts/render_canvas.py \
+  skills/os11-audit-architecture/assets/example-canvas.json example-canvas.svg
+```
+
 ## Releasing (Maintainers)
 
 Claude Code only delivers an update when the `version` in `.claude-plugin/plugin.json` changes, so every release needs a version bump.
@@ -257,7 +284,7 @@ Claude Code only delivers an update when the `version` in `.claude-plugin/plugin
 1. Bump `version` in `.claude-plugin/plugin.json` following [Semantic Versioning](https://semver.org/).
 2. Add a `## [X.Y.Z] - YYYY-MM-DD` section to `CHANGELOG.md`.
 3. Run `claude plugin validate --strict .` and fix anything it reports.
-4. Commit, then tag and push: `git tag vX.Y.Z && git push origin main vX.Y.Z`.
+4. Commit and push `main`, then tag and push the tag in a separate push: `git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin vX.Y.Z`.
 
 The [release workflow](.github/workflows/release.yml) checks that the tag matches `plugin.json`, validates the plugin and skills, and publishes a GitHub release with the changelog notes and a zip of the skills.
 

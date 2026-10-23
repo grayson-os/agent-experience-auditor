@@ -1,0 +1,36 @@
+{
+  "title": "Architecture Canvas: Orders_UI",
+  "audited": "Orders_UI",
+  "modules": [
+    { "name": "Orders_UI", "layer": "end-user", "sublayer": "End User" },
+    { "name": "Customers_UI", "layer": "end-user", "sublayer": "End User" },
+    { "name": "Order_API", "layer": "core", "sublayer": "API" },
+    { "name": "Order_CW", "layer": "core", "sublayer": "Core Widgets" },
+    { "name": "Order_BL", "layer": "core", "sublayer": "Composite Logic" },
+    { "name": "Pricing_Eng", "layer": "core", "sublayer": "Composite Logic" },
+    { "name": "Order_CS", "layer": "core", "sublayer": "Core Service" },
+    { "name": "Customer_CS", "layer": "core", "sublayer": "Core Service" },
+    { "name": "OutSystemsUI", "layer": "foundation", "sublayer": "Style Guide" },
+    { "name": "Corporate_Th", "layer": "foundation", "sublayer": "Style Guide" },
+    { "name": "Payment_IS", "layer": "foundation", "sublayer": "Foundation Service" },
+    { "name": "Common_Lib", "layer": "foundation", "sublayer": "Library" }
+  ],
+  "references": [
+    { "from": "Orders_UI", "to": "Customers_UI" },
+    { "from": "Orders_UI", "to": "Order_CW" },
+    { "from": "Orders_UI", "to": "Order_BL" },
+    { "from": "Orders_UI", "to": "Corporate_Th" },
+    { "from": "Customers_UI", "to": "Customer_CS" },
+    { "from": "Customers_UI", "to": "Corporate_Th" },
+    { "from": "Order_API", "to": "Order_BL" },
+    { "from": "Order_CW", "to": "Order_CS" },
+    { "from": "Order_CW", "to": "OutSystemsUI" },
+    { "from": "Order_BL", "to": "Order_CS" },
+    { "from": "Order_BL", "to": "Pricing_Eng" },
+    { "from": "Order_BL", "to": "Payment_IS" },
+    { "from": "Pricing_Eng", "to": "Order_BL" },
+    { "from": "Order_CS", "to": "Customer_CS" },
+    { "from": "Corporate_Th", "to": "OutSystemsUI" },
+    { "from": "Common_Lib", "to": "Order_CS" }
+  ]
+}

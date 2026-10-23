@@ -1,7 +1,7 @@
 {
   "name": "os11-audit",
   "displayName": "OutSystems 11 Audit",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Phased architecture, security, performance, and maintainability audits of OutSystems 11 modules through the Service Studio MCP server, plus a report synthesizer.",
   "author": {
     "name": "Grayson Udstrand",
