@@ -1,0 +1,28 @@
+{
+  "title": "Indirect cycle through Core sub-layers",
+  "audited": "Claims_UI",
+  "modules": [
+    { "name": "Claims_UI", "layer": "end-user", "sublayer": "End User" },
+    { "name": "Claims_BL", "layer": "core", "sublayer": "Composite Logic", "references_checked": true },
+    { "name": "Policy_BL", "layer": "core", "sublayer": "Composite Logic", "references_checked": true },
+    { "name": "Claims_CS", "layer": "core", "sublayer": "Core Service", "references_checked": true },
+    { "name": "Policy_CS", "layer": "core", "sublayer": "Core Service", "references_checked": true },
+    { "name": "Customer_CS", "layer": "core", "sublayer": "Core Service" },
+    { "name": "Common_Lib", "layer": "foundation", "sublayer": "Library", "references_checked": true },
+    { "name": "OutSystemsUI", "layer": "foundation", "sublayer": "Style Guide", "owner": "platform" },
+    { "name": "Users", "layer": "core", "sublayer": "Core Service", "owner": "platform" }
+  ],
+  "references": [
+    { "from": "Claims_UI", "to": "Claims_BL" },
+    { "from": "Claims_UI", "to": "OutSystemsUI" },
+    { "from": "Claims_BL", "to": "Policy_BL" },
+    { "from": "Claims_BL", "to": "Claims_CS" },
+    { "from": "Policy_BL", "to": "Policy_CS" },
+    { "from": "Claims_CS", "to": "Policy_CS" },
+    { "from": "Policy_CS", "to": "Claims_BL" },
+    { "from": "Claims_CS", "to": "Customer_CS" },
+    { "from": "Claims_CS", "to": "Common_Lib" },
+    { "from": "Common_Lib", "to": "Users" },
+    { "from": "OutSystemsUI", "to": "Users" }
+  ]
+}
