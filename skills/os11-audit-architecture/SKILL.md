@@ -1,6 +1,6 @@
 ---
 name: os11-audit-architecture
-description: "Audits an OutSystems 11 module open in Service Studio for Architecture Canvas violations (upward and side references, circular dependencies), editable public entities, domain leaks, and misplaced business logic, via the Service Studio MCP server. Use when the user asks for an O11 architecture review, a dependency or reference audit, or the first phase of a full O11 audit."
+description: "Draws the OutSystems 11 Architecture Canvas diagram of the modules open in Service Studio and audits them for upward and side references, direct and indirect circular dependencies, editable public entities, domain leaks, and misplaced business logic, via the Service Studio MCP server. Use whenever the user asks to generate, draw, map, or visualize an O11 or OutSystems architecture diagram, Architecture Canvas, module map, or dependency graph, and for an O11 architecture review, a dependency or reference audit, or the first phase of a full O11 audit."
 license: MIT
 ---
 
@@ -22,15 +22,22 @@ Some modules in the topology are supplied by OutSystems or Forge, and the team c
    - **End User**: End User (`_UI`).
    - **Core**: API (`_API`, `_OAPI`), Core Widgets (`_CW`), Composite Logic (`_BL`, `_Eng`, `_Sync`), Core Service (`_CS`).
    - **Foundation**: Style Guide (`_Pat`, `_Th`), Foundation Service (`_IS`, `_Drv`), Library (`_Lib`), Plugin (`_Plug`).
-3. Record every module-to-module reference (consumer -> producer).
-4. Write the canvas model and render the diagram with `scripts/render_canvas.py`, following [references/canvas-diagram.md](references/canvas-diagram.md). The script also detects upward, side, and cycle violations; use its output to confirm the reference findings below.
+3. Record every module-to-module reference (consumer -> producer) **for every module in the diagram**, not only the audited one. Indirect cycles usually run through references between the other modules, such as a Core Service module referencing back into Composite Logic, so a model with only the audited module's references hides them. Mark each module whose own references you inspected with `"references_checked": true`. See section 2 of [references/canvas-diagram.md](references/canvas-diagram.md) for what to do when the MCP can't show a module's references.
+4. Write the canvas model and render the diagram with `scripts/render_canvas.py ... --html`, following [references/canvas-diagram.md](references/canvas-diagram.md). The script detects upward, side, and cycle violations, groups cycles with their full paths, lists the modules whose references weren't checked, and writes both the SVG and the interactive HTML diagram. Use its output to confirm the reference findings below.
+5. Show the diagram. When you can publish an Artifact (Claude), publish the HTML file the script wrote as an Artifact: it is the primary diagram. Otherwise, show the SVG. See section 5 of [references/canvas-diagram.md](references/canvas-diagram.md).
+
+**Always draw the diagram from the template.** Never hand-draw the canvas, or write your own HTML, SVG, React, or Mermaid version of it, even when you can publish Artifacts. The template and the script compute violations and cycles with fixed, tested rules, so the diagram matches the findings and looks the same on every run.
+
+## Diagram-Only Requests
+When the user asks only for a diagram ("generate an O11 architecture diagram", "map these modules"), run steps 1 to 5 and stop after the diagram. Output the `## Architecture Canvas Diagram` section with the script's text summary, then one short paragraph naming the violations, cycles, and gaps it shows. Skip the Findings, Platform Controls, and Verify in Environment sections, and offer to run the full architecture audit.
 
 ## Rules & Anti-Patterns to Flag
 
 ### 1. Architecture Canvas Rule Violations
 - **Upward References**: A Foundation module consuming Core or End User; a Core module consuming End User.
 - **Side References at End User**: An End User module consuming another End User module (screens/blocks should be decoupled via URL, event, or Core extraction).
-- **Circular Dependencies**: Any dependency cycle (direct or indirect) between two modules.
+- **Circular Dependencies**: Any dependency cycle, direct (two modules referencing each other) or indirect (a loop through three or more modules), in any layer.
+- **Side References in Core and Foundation are allowed** as long as they are not part of a cycle. Don't report them on their own. When one is part of a cycle, the script lists it under "Against the canvas order" for that cycle; name it in the cycle's finding as the likely reference to remove.
 
 ### 2. Entity Exposure & Data Leaks
 - **Public Entity with Read Only = No**: Core entities exposed to consumers as directly editable.
@@ -54,10 +61,12 @@ Apply this to every candidate finding:
 Output four sections, in this order.
 
 ### Architecture Canvas Diagram
-Start the output with a `## Architecture Canvas Diagram` heading. Under it, give the path of the rendered SVG, embed it with `![Architecture Canvas](os11-audit/architecture-canvas.svg)`, and paste the script's text summary in a `text` code block, as [references/canvas-diagram.md](references/canvas-diagram.md) specifies. Always include the diagram, even when there are no findings. A terminal shows only the text summary, which is expected; the `os11-audit-report` skill embeds the SVG in the final report, where it renders.
+Start the output with a `## Architecture Canvas Diagram` heading. Under it, link the Artifact if you published one, give the path of the rendered SVG (and of the focused SVG, if the script wrote one), embed it with `![Architecture Canvas](os11-audit/architecture-canvas.svg)`, and paste the script's text summary in a `text` code block, as [references/canvas-diagram.md](references/canvas-diagram.md) specifies. Always include the diagram, even when there are no findings. A terminal shows only the text summary, which is expected; the `os11-audit-report` skill embeds the SVG in the final report, where it renders.
 
 ### Findings
 Then add a `## Findings` heading and output each finding in the following format:
+
+Report one finding per upward or side reference, and one finding per cycle group (`C1`, `C2`, ...) that lists every path the script printed for it.
 
 ### [ARCH-###] [SEVERITY: High/Medium/Low] <Finding Title>
 - **Layer & Element**: `<Layer> / <Sub-layer>` | `<Module Name>` -> `<Action/Entity Name>`

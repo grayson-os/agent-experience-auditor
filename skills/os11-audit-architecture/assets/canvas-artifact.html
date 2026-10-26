@@ -1,0 +1,1022 @@
+<title>Architecture Canvas</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<!--
+  OutSystems 11 Architecture Canvas, interactive view.
+  Template for the os11-audit-architecture skill. Do not edit by hand: fill it
+  with `render_canvas.py <model.json> <out.svg> --html <out.html>`, or replace the
+  placeholder line in the canvas-model script with the canvas JSON model
+  (see references/canvas-diagram.md).
+  The page validates the model and computes violations and cycles itself, with the
+  same rules as render_canvas.py (tests/test_canvas_artifact.py checks they agree).
+-->
+<style>
+/* Layout: one column. Header and counts, the canvas (scrolls sideways when wide), then violations, cycles and gaps. */
+:root {
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --ink: #1b1f27;
+  --ink-2: #4a5160;
+  --muted: #6b7280;
+  --line: #d9dee7;
+  --box: #ffffff;
+  --edge: #a9afba;
+  --red: #c62828;
+  --red-fill: #fdecea;
+  --purple: #7b1fa2;
+  --purple-fill: #f3e5f5;
+  --amber: #a15c00;
+  --amber-fill: #fff4e0;
+  --badge-ink: #ffffff;
+  --focus: #2f6fd6;
+  --eu-fill: #dbe7fb; --eu-stroke: #5b7fbf;
+  --core-fill: #fdf1cf; --core-stroke: #c9a227;
+  --fnd-fill: #dcefd9; --fnd-stroke: #5a9a52;
+  --font-ui: "IBM Plex Sans", "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111318; --surface: #191c23; --ink: #e8ebf1; --ink-2: #b9c0cc; --muted: #8b93a1; --line: #2c313b;
+    --box: #1d2129; --edge: #5b616d; --red: #ff6f66; --red-fill: #3a1d1d; --purple: #cf8ee6; --purple-fill: #2f2038;
+    --amber: #f0a640; --amber-fill: #3a2c14; --badge-ink: #111318; --focus: #7aa7ff;
+    --eu-fill: #1b2740; --eu-stroke: #6f93d6; --core-fill: #2e2814; --core-stroke: #c9a227; --fnd-fill: #1a2c1c; --fnd-stroke: #6fae66;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111318; --surface: #191c23; --ink: #e8ebf1; --ink-2: #b9c0cc; --muted: #8b93a1; --line: #2c313b;
+  --box: #1d2129; --edge: #5b616d; --red: #ff6f66; --red-fill: #3a1d1d; --purple: #cf8ee6; --purple-fill: #2f2038;
+  --amber: #f0a640; --amber-fill: #3a2c14; --badge-ink: #111318; --focus: #7aa7ff;
+  --eu-fill: #1b2740; --eu-stroke: #6f93d6; --core-fill: #2e2814; --core-stroke: #c9a227; --fnd-fill: #1a2c1c; --fnd-stroke: #6fae66;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 14px; line-height: 1.5; }
+.page {
+  max-width: 1320px; margin: 0 auto; display: grid; gap: 20px;
+  padding-block: 24px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.page > * { min-width: 0; }
+.eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+h1 { margin: 2px 0 4px; font-size: 26px; line-height: 1.2; font-weight: 700; text-wrap: balance; }
+h2 { margin: 0 0 10px; font-size: 16px; font-weight: 600; }
+.meta { color: var(--ink-2); margin: 0; }
+.mono { font-family: var(--font-data); font-size: 13px; }
+.stats { display: flex; flex-wrap: wrap; gap: 8px; }
+.stat {
+  display: flex; align-items: baseline; gap: 8px; padding: 6px 12px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--surface); font-variant-numeric: tabular-nums;
+}
+.stat b { font-size: 16px; }
+.stat.red { border-color: var(--red); color: var(--red); background: var(--red-fill); }
+.stat.purple { border-color: var(--purple); color: var(--purple); background: var(--purple-fill); }
+.stat.amber { border-color: var(--amber); color: var(--amber); background: var(--amber-fill); }
+.stat.ok { color: var(--ink-2); }
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; }
+.toolbar label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.toolbar button, .linkish {
+  font: inherit; color: var(--focus); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline;
+}
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--ink-2); font-size: 13px; margin: 0; padding: 0; list-style: none; }
+.legend li { display: inline-flex; align-items: center; gap: 6px; }
+.legend svg { flex: none; }
+.canvas-wrap {
+  overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+}
+.canvas-wrap svg { display: block; max-width: none; margin: 0 auto; }
+.hint { color: var(--muted); font-size: 13px; margin: 0; }
+.panels { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); align-items: start; }
+.panels > section { min-width: 0; }
+.empty { color: var(--muted); margin: 0; }
+.vlist, .clist, .glist { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.vrow, .crow {
+  width: 100%; text-align: left; font: inherit; color: inherit; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; cursor: pointer;
+  display: grid; grid-template-columns: 24px 1fr; gap: 2px 10px; align-items: start;
+}
+.vrow:hover, .crow:hover { border-color: var(--ink-2); }
+.vrow.active, .crow.active { border-color: var(--focus); box-shadow: 0 0 0 1px var(--focus); }
+.num {
+  width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700;
+  color: var(--badge-ink); background: var(--red); font-variant-numeric: tabular-nums;
+}
+.num.purple { background: var(--purple); }
+.kind { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--red); }
+.kind.purple { color: var(--purple); }
+.ref { font-family: var(--font-data); font-size: 13px; overflow-wrap: anywhere; }
+.crow .paths { grid-column: 2; margin: 4px 0 0; padding: 0; list-style: none; display: grid; gap: 2px; }
+.crow .against { grid-column: 2; color: var(--ink-2); font-size: 13px; margin: 4px 0 0; }
+.glist li { padding: 8px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); }
+.glist li.amber { border-color: var(--amber); background: var(--amber-fill); }
+details { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; }
+details summary { cursor: pointer; font-weight: 600; }
+details pre { overflow-x: auto; margin: 10px 0 0; font-family: var(--font-data); font-size: 12px; color: var(--ink-2); }
+.error {
+  border: 1px solid var(--red); background: var(--red-fill); color: var(--ink); border-radius: 8px; padding: 14px 16px;
+}
+.error strong { color: var(--red); }
+footer { color: var(--muted); font-size: 12px; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* Canvas drawing */
+#canvas text { font-family: var(--font-ui); fill: var(--ink); }
+#canvas .canvas-bg { fill: var(--surface); }
+#canvas .band-end-user .band { fill: var(--eu-fill); stroke: var(--eu-stroke); }
+#canvas .band-core .band { fill: var(--core-fill); stroke: var(--core-stroke); }
+#canvas .band-foundation .band { fill: var(--fnd-fill); stroke: var(--fnd-stroke); }
+#canvas .band-end-user .rule { stroke: var(--eu-stroke); }
+#canvas .band-core .rule { stroke: var(--core-stroke); }
+#canvas .band-foundation .rule { stroke: var(--fnd-stroke); }
+#canvas .layer-title { font-weight: 700; font-size: 14px; letter-spacing: .06em; }
+#canvas .sublayer-title { font-size: 13px; fill: var(--ink-2); }
+#canvas text.muted { fill: var(--muted); }
+#canvas .edge path { fill: none; }
+#canvas .edge.ok path { stroke: var(--edge); stroke-width: 1.2; }
+#canvas .edge.red path { stroke: var(--red); stroke-width: 2.4; }
+#canvas .edge.purple path { stroke: var(--purple); stroke-width: 2.4; }
+#canvas .edge.ok.sel path { stroke: var(--ink-2); stroke-width: 2; }
+#canvas .ah-grey { fill: var(--edge); }
+#canvas .ah-red { fill: var(--red); }
+#canvas .ah-purple { fill: var(--purple); }
+#canvas .ah-ink { fill: var(--ink-2); }
+#canvas .box { cursor: pointer; }
+#canvas .box rect { fill: var(--box); stroke: var(--ink); stroke-width: 1.2; }
+#canvas .box.platform rect { stroke: var(--muted); stroke-dasharray: 5 3; }
+#canvas .box.cycle rect { fill: var(--purple-fill); stroke: var(--purple); stroke-width: 2.2; }
+#canvas .box.owns rect { fill: var(--red-fill); stroke: var(--red); stroke-width: 2.2; }
+#canvas .box.audited rect { stroke-width: 4; }
+#canvas .box .label { font-size: 13px; }
+#canvas .box.audited .label { font-weight: 700; }
+#canvas .box.platform .label { fill: var(--muted); }
+#canvas .box:focus { outline: none; }
+#canvas .box:focus-visible rect { stroke: var(--focus); stroke-width: 3; }
+#canvas .q circle { fill: var(--amber-fill); stroke: var(--amber); stroke-width: 1.5; }
+#canvas .q text { fill: var(--amber); font-weight: 700; font-size: 11px; }
+#canvas .badge circle { stroke: var(--surface); stroke-width: 1.5; }
+#canvas .badge.red circle { fill: var(--red); }
+#canvas .badge.purple circle { fill: var(--purple); }
+#canvas .badge text { fill: var(--badge-ink); font-weight: 700; font-size: 11px; }
+#canvas .badge { cursor: pointer; }
+#canvas .edge, #canvas .box, #canvas .badge { transition: opacity 120ms ease; }
+#canvas.has-sel .edge:not(.sel), #canvas.has-sel .box:not(.sel), #canvas.has-sel .badge:not(.sel) { opacity: .14; }
+#canvas.hide-ok .edge.ok:not(.sel) { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  #canvas .edge, #canvas .box, #canvas .badge { transition: none; }
+}
+</style>
+
+<div class="page">
+  <header>
+    <div class="eyebrow">OutSystems 11 · Architecture Canvas</div>
+    <h1 id="title">Architecture Canvas</h1>
+    <p class="meta" id="meta"></p>
+  </header>
+
+  <div id="error" class="error" hidden></div>
+
+  <div id="view" hidden>
+    <div style="display:grid;gap:16px">
+      <div class="stats" id="stats"></div>
+      <div class="toolbar">
+        <label><input type="checkbox" id="show-compliant" checked> Show compliant references</label>
+        <label id="focus-toggle" hidden><input type="checkbox" id="focus-view" checked> <span id="focus-label">Focused view</span></label>
+        <button type="button" id="clear" hidden>Clear selection</button>
+      </div>
+      <ul class="legend" aria-label="Legend">
+        <li><svg width="34" height="12" aria-hidden="true"><path d="M2,6 H26" stroke="var(--edge)" stroke-width="1.2"/><path d="M24,2 L32,6 L24,10 z" fill="var(--edge)"/></svg>Reference (consumer to producer)</li>
+        <li><svg width="34" height="12" aria-hidden="true"><path d="M2,6 H26" stroke="var(--red)" stroke-width="2.4"/><path d="M24,2 L32,6 L24,10 z" fill="var(--red)"/></svg>Upward or side reference</li>
+        <li><svg width="34" height="12" aria-hidden="true"><path d="M2,6 H26" stroke="var(--purple)" stroke-width="2.4"/><path d="M24,2 L32,6 L24,10 z" fill="var(--purple)"/></svg>Reference in a cycle</li>
+        <li><svg width="30" height="16" aria-hidden="true"><rect x="1" y="1" width="28" height="14" rx="3" fill="var(--red-fill)" stroke="var(--red)" stroke-width="2"/></svg>Owns an upward or side reference</li>
+        <li><svg width="30" height="16" aria-hidden="true"><rect x="1" y="1" width="28" height="14" rx="3" fill="var(--purple-fill)" stroke="var(--purple)" stroke-width="2"/></svg>In a cycle</li>
+        <li><svg width="30" height="16" aria-hidden="true"><rect x="2" y="2" width="26" height="12" rx="3" fill="var(--box)" stroke="var(--ink)" stroke-width="3"/></svg>Audited module</li>
+        <li><svg width="30" height="16" aria-hidden="true"><rect x="1" y="1" width="28" height="14" rx="3" fill="var(--box)" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="5 3"/></svg>OutSystems or Forge module</li>
+        <li><svg width="18" height="18" aria-hidden="true"><circle cx="9" cy="9" r="7.5" fill="var(--amber-fill)" stroke="var(--amber)" stroke-width="1.5"/><text x="9" y="13" text-anchor="middle" font-size="11" font-weight="700" fill="var(--amber)">?</text></svg>References not checked</li>
+      </ul>
+    </div>
+    <div class="canvas-wrap" id="canvas-wrap" style="margin-top:16px"></div>
+    <p class="hint" style="margin-top:8px">Hover or select a module to trace its references. Select a violation or cycle to highlight it.</p>
+
+    <div class="panels" style="margin-top:20px">
+      <section aria-labelledby="v-head"><h2 id="v-head">Violations</h2><ol class="vlist" id="violations"></ol></section>
+      <section aria-labelledby="c-head"><h2 id="c-head">Cycles</h2><ul class="clist" id="cycles"></ul></section>
+      <section aria-labelledby="g-head"><h2 id="g-head">Gaps</h2><ul class="glist" id="gaps"></ul></section>
+    </div>
+  </div>
+
+  <details id="model-details" hidden>
+    <summary>Canvas model (JSON)</summary>
+    <pre id="model-json"></pre>
+  </details>
+
+  <footer>Drawn by the os11-audit-architecture skill from the canvas model embedded in this page. Violations and cycles are computed here with the same rules as render_canvas.py.</footer>
+</div>
+
+<script type="application/json" id="canvas-model">
+__CANVAS_MODEL__
+</script>
+
+<script id="canvas-analysis">
+// BEGIN CANVAS ANALYSIS
+// Validation and analysis, ported from render_canvas.py. Keep the two in step:
+// tests/test_canvas_artifact.py runs this block under Node and compares results.
+var CANVAS = (function () {
+  var LAYERS = [
+    { id: "end-user", title: "END USER", sublayers: ["End User"] },
+    { id: "core", title: "CORE", sublayers: ["API", "Core Widgets", "Composite Logic", "Core Service"] },
+    { id: "foundation", title: "FOUNDATION", sublayers: ["Style Guide", "Foundation Service", "Library", "Plugin"] }
+  ];
+  var LAYER_RANK = {}, SUBLAYER_RANK = {}, VALID = {};
+  LAYERS.forEach(function (layer, rank) {
+    LAYER_RANK[layer.id] = rank;
+    VALID[layer.id] = layer.sublayers;
+    layer.sublayers.forEach(function (sub, i) { SUBLAYER_RANK[layer.id + "|" + sub] = i; });
+  });
+  var OWNERS = ["team", "platform"];
+  var KIND_ORDER = { upward: 0, side: 1, cycle: 2 };
+  var FOCUS_THRESHOLD = 15;
+
+  function has(obj, key) { return Object.prototype.hasOwnProperty.call(obj, key); }
+  function get(obj, key, fallback) { return has(obj, key) ? obj[key] : fallback; }
+  function isObject(value) { return value !== null && typeof value === "object" && !Array.isArray(value); }
+  function cmp(a, b) { return a < b ? -1 : a > b ? 1 : 0; }
+  function cmpLower(a, b) { return cmp(a.toLowerCase(), b.toLowerCase()); }
+  function cmpTuple(a, b) {
+    for (var i = 0; i < Math.min(a.length, b.length); i++) {
+      var c = typeof a[i] === "number" ? a[i] - b[i] : cmp(a[i], b[i]);
+      if (c) return c;
+    }
+    return a.length - b.length;
+  }
+  function key(a, b) { return a + "\u0000" + b; }
+
+  function CanvasError(message) { this.message = message; }
+
+  function fail(message) { throw new CanvasError(message); }
+
+  function validate(model) {
+    if (!isObject(model)) fail("the model must be a JSON object");
+    var modules = model.modules;
+    var references = get(model, "references", []);
+    if (!Array.isArray(modules) || !modules.length) fail('"modules" must be a non-empty list');
+    if (!Array.isArray(references)) fail('"references" must be a list');
+
+    var names = {};
+    modules.forEach(function (module) {
+      if (!isObject(module)) fail("every module must be an object");
+      var name = module.name, layer = module.layer, sublayer = module.sublayer;
+      if (!name) fail("every module needs a name");
+      if (has(names, name)) fail("duplicate module " + name);
+      names[name] = true;
+      if (typeof layer !== "string" || !has(VALID, layer)) fail(name + ": layer must be one of " + Object.keys(VALID).join(", "));
+      if (VALID[layer].indexOf(sublayer) < 0) fail(name + ": sublayer for " + layer + " must be one of " + VALID[layer].join(", "));
+      if (OWNERS.indexOf(get(module, "owner", "team")) < 0) fail(name + ": owner must be one of " + OWNERS.join(", "));
+      if (typeof get(module, "references_checked", false) !== "boolean") fail(name + ": references_checked must be true or false");
+    });
+
+    var seen = {};
+    references.forEach(function (ref) {
+      if (!isObject(ref)) fail("every reference must be an object");
+      var source = ref.from, target = ref.to;
+      [source, target].forEach(function (end) {
+        if (typeof end !== "string" || !has(names, end)) fail("reference " + source + " -> " + target + " uses undeclared module " + end);
+      });
+      if (source === target) fail("reference " + source + " -> " + target + " points at itself");
+      if (has(seen, key(source, target))) fail("duplicate reference " + source + " -> " + target);
+      seen[key(source, target)] = true;
+    });
+
+    var audited = get(model, "audited", null);
+    if (audited !== null && !has(names, audited)) fail("audited module " + audited + " is not in modules");
+    if (!Array.isArray(get(model, "omitted", []))) fail('"omitted" must be a list of module names');
+  }
+
+  // Tarjan's algorithm, iterative. Returns the components, in discovery order.
+  function stronglyConnected(graph, order) {
+    var index = {}, low = {}, onStack = {}, stack = [], components = [], counter = 0;
+    order.forEach(function (root) {
+      if (has(index, root)) return;
+      var work = [[root, 0]];
+      index[root] = low[root] = counter++;
+      stack.push(root); onStack[root] = true;
+      while (work.length) {
+        var frame = work[work.length - 1], node = frame[0], children = graph[node], advanced = false;
+        while (frame[1] < children.length) {
+          var next = children[frame[1]++];
+          if (!has(index, next)) {
+            index[next] = low[next] = counter++;
+            stack.push(next); onStack[next] = true;
+            work.push([next, 0]);
+            advanced = true;
+            break;
+          }
+          if (onStack[next]) low[node] = Math.min(low[node], index[next]);
+        }
+        if (advanced) continue;
+        work.pop();
+        if (work.length) {
+          var parent = work[work.length - 1][0];
+          low[parent] = Math.min(low[parent], low[node]);
+        }
+        if (low[node] === index[node]) {
+          var members = [], member;
+          do { member = stack.pop(); onStack[member] = false; members.push(member); } while (member !== node);
+          components.push(members);
+        }
+      }
+    });
+    return components;
+  }
+
+  // Shortest path from start to goal that stays inside `allowed`.
+  function shortestPath(graph, start, goal, allowed) {
+    var previous = {}; previous[start] = null;
+    var queue = [start], head = 0;
+    while (head < queue.length) {
+      var node = queue[head++];
+      if (node === goal) {
+        var path = [];
+        while (node !== null) { path.push(node); node = previous[node]; }
+        return path.reverse();
+      }
+      graph[node].slice().sort(cmp).forEach(function (next) {
+        if (has(allowed, next) && !has(previous, next)) { previous[next] = node; queue.push(next); }
+      });
+    }
+    return null;
+  }
+
+  // Rotate a cycle (without its repeated end) to start at its smallest name.
+  function canonicalCycle(nodes) {
+    var start = 0;
+    for (var i = 1; i < nodes.length; i++) if (cmpLower(nodes[i], nodes[start]) < 0) start = i;
+    return nodes.slice(start).concat(nodes.slice(0, start));
+  }
+
+  // True when a reference points up the canvas, by layer or by sub-layer.
+  function againstOrder(info, source, target) {
+    var a = info[source], b = info[target];
+    if (LAYER_RANK[b.layer] !== LAYER_RANK[a.layer]) return LAYER_RANK[b.layer] < LAYER_RANK[a.layer];
+    return SUBLAYER_RANK[b.layer + "|" + b.sublayer] < SUBLAYER_RANK[a.layer + "|" + a.sublayer];
+  }
+
+  function analyze(model) {
+    var modules = model.modules, references = get(model, "references", []);
+    var audited = get(model, "audited", null);
+    var info = {}, order = [], graph = {};
+    modules.forEach(function (m) { info[m.name] = m; order.push(m.name); graph[m.name] = []; });
+    references.forEach(function (ref) { graph[ref.from].push(ref.to); });
+
+    var kinds = {}, edgeOf = {};
+    function add(a, b, kind) {
+      var k = key(a, b);
+      if (!has(kinds, k)) { kinds[k] = []; edgeOf[k] = [a, b]; }
+      if (kinds[k].indexOf(kind) < 0) kinds[k].push(kind);
+    }
+
+    // Upward and side references. Modules the team doesn't own are not judged.
+    references.forEach(function (ref) {
+      var consumer = info[ref.from], producer = info[ref.to];
+      if (get(consumer, "owner", "team") !== "team") return;
+      if (LAYER_RANK[producer.layer] < LAYER_RANK[consumer.layer]) add(ref.from, ref.to, "upward");
+      else if (consumer.layer === "end-user" && producer.layer === "end-user") add(ref.from, ref.to, "side");
+    });
+
+    // Cycles: every reference inside a strongly connected component with more
+    // than one module lies on at least one cycle, direct or indirect.
+    var components = stronglyConnected(graph, order)
+      .filter(function (c) { return c.length > 1; })
+      .map(function (c) { return c.slice().sort(cmpLower); });
+    components.sort(function (a, b) { return cmpLower(a[0], b[0]); });
+    var cycles = [], cycleOf = {};
+    components.forEach(function (members, i) {
+      var id = "C" + (i + 1), allowed = {};
+      members.forEach(function (m) { allowed[m] = true; });
+      var edges = [];
+      members.forEach(function (a) { graph[a].forEach(function (b) { if (has(allowed, b)) edges.push([a, b]); }); });
+      edges.sort(function (x, y) { return cmpLower(x[0], y[0]) || cmpLower(x[1], y[1]); });
+      var paths = {}, list = [];
+      edges.forEach(function (e) {
+        add(e[0], e[1], "cycle");
+        cycleOf[key(e[0], e[1])] = id;
+        var back = shortestPath(graph, e[1], e[0], allowed);
+        var path = canonicalCycle([e[0]].concat(back.slice(0, -1)));
+        var pk = path.join("\u0000");
+        if (!has(paths, pk)) { paths[pk] = true; list.push(path); }
+      });
+      list.sort(function (p, q) {
+        return (p.length - q.length) || cmpTuple(p.map(function (n) { return n.toLowerCase(); }), q.map(function (n) { return n.toLowerCase(); }));
+      });
+      cycles.push({
+        id: id,
+        members: members,
+        paths: list,
+        break_candidates: edges.filter(function (e) { return againstOrder(info, e[0], e[1]); })
+      });
+    });
+
+    var ordered = Object.keys(kinds).map(function (k) {
+      var edge = edgeOf[k];
+      var minKind = Math.min.apply(null, kinds[k].map(function (kind) { return KIND_ORDER[kind]; }));
+      return { k: k, edge: edge, sortKey: [minKind, get(cycleOf, k, ""), edge[0].toLowerCase(), edge[1].toLowerCase()] };
+    });
+    ordered.sort(function (a, b) { return cmpTuple(a.sortKey, b.sortKey); });
+    var violations = ordered.map(function (item, i) {
+      return {
+        number: i + 1,
+        from: item.edge[0],
+        to: item.edge[1],
+        kinds: kinds[item.k].slice().sort(function (a, b) { return KIND_ORDER[a] - KIND_ORDER[b]; }),
+        cycle: get(cycleOf, item.k, null)
+      };
+    });
+
+    var unchecked = modules.filter(function (m) {
+      return get(m, "owner", "team") === "team" && !get(m, "references_checked", m.name === audited);
+    }).map(function (m) { return m.name; }).sort(cmpLower);
+    return { violations: violations, cycles: cycles, unchecked: unchecked };
+  }
+
+  // A direct cycle is two modules referencing each other; an indirect one runs through others.
+  function cycleKind(cycle) {
+    var direct = cycle.paths.map(function (p) { return p.length === 2; });
+    if (direct.every(Boolean)) return "direct";
+    return direct.some(Boolean) ? "direct and indirect" : "indirect";
+  }
+
+  function violationLabel(v) {
+    return v.kinds.map(function (kind) { return kind === "cycle" ? "cycle " + v.cycle : kind; }).join(", ");
+  }
+
+  // Modules for the focused view, or null when it would not help.
+  function focusModules(model, analysis) {
+    var modules = model.modules;
+    if (modules.length <= FOCUS_THRESHOLD) return null;
+    var audited = get(model, "audited", null), keep = {};
+    if (audited) {
+      keep[audited] = true;
+      get(model, "references", []).forEach(function (ref) {
+        if (ref.from === audited || ref.to === audited) { keep[ref.from] = true; keep[ref.to] = true; }
+      });
+    }
+    analysis.violations.forEach(function (v) { keep[v.from] = true; keep[v.to] = true; });
+    analysis.cycles.forEach(function (c) { c.members.forEach(function (m) { keep[m] = true; }); });
+    var names = Object.keys(keep);
+    if (!names.length || names.length >= modules.length) return null;
+    return names.sort(cmpLower);
+  }
+
+  return {
+    LAYERS: LAYERS, CanvasError: CanvasError, validate: validate, analyze: analyze,
+    cycleKind: cycleKind, violationLabel: violationLabel, focusModules: focusModules
+  };
+})();
+// END CANVAS ANALYSIS
+</script>
+
+<script>
+(function () {
+  "use strict";
+  var LAYERS = CANVAS.LAYERS;
+
+  // Layout, in pixels. Same values as render_canvas.py.
+  var MIN_WIDTH = 960, MARGIN = 20, LAYER_COL = 110, SUBLAYER_COL = 140, ROW_PAD = 26, BOX_H = 38;
+  var CHANNEL_W = 48, BOX_GAP_Y = 48, LANE_STEP = 5, LAYER_GAP = 14, MIN_COLS = 4, MAX_COLS = 8, CHAR_W = 7.4;
+
+  function $(id) { return document.getElementById(id); }
+  function esc(value) {
+    return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  function lowerCmp(a, b) { a = a.toLowerCase(); b = b.toLowerCase(); return a < b ? -1 : a > b ? 1 : 0; }
+  function key(a, b) { return a + "\u0000" + b; }
+  function pyRound(x) {
+    var r = Math.round(x);
+    return Math.abs(x % 1) === 0.5 && r % 2 !== 0 ? r - 1 : r;
+  }
+  function f(n) { return n.toFixed(1); }
+
+  // ---- Layout (port of render_canvas.py) ---------------------------------
+
+  function bestSlots(desired, cols) {
+    var k = desired.length, cost = [], back = [], s, i;
+    for (i = 0; i < k; i++) { cost.push(new Array(cols).fill(Infinity)); back.push(new Array(cols).fill(0)); }
+    for (s = 0; s < cols; s++) cost[0][s] = Math.abs(s - desired[0]);
+    for (i = 1; i < k; i++) {
+      var best = Infinity, bestS = 0;
+      for (s = 0; s < cols; s++) {
+        if (s - 1 >= 0 && cost[i - 1][s - 1] < best) { best = cost[i - 1][s - 1]; bestS = s - 1; }
+        if (best < Infinity) { cost[i][s] = best + Math.abs(s - desired[i]); back[i][s] = bestS; }
+      }
+    }
+    s = 0;
+    for (var c = 1; c < cols; c++) if (cost[k - 1][c] < cost[k - 1][s]) s = c;
+    var slots = new Array(k);
+    for (i = k - 1; i >= 0; i--) { slots[i] = s; s = back[i][s]; }
+    return slots;
+  }
+
+  function orderColumns(lines, cols, references) {
+    var neighbours = {}, column = {};
+    lines.forEach(function (line) { line.forEach(function (n) { neighbours[n] = []; }); });
+    references.forEach(function (r) {
+      if (neighbours[r.from] && neighbours[r.to]) { neighbours[r.from].push(r.to); neighbours[r.to].push(r.from); }
+    });
+    lines.forEach(function (line) {
+      line.forEach(function (n, j) { column[n] = pyRound((j + 0.5) * cols / line.length - 0.5); });
+    });
+    for (var sweep = 0; sweep < 8; sweep++) {
+      var sequence = sweep % 2 === 0 ? lines : lines.slice().reverse();
+      sequence.forEach(function (line) {
+        var desired = {};
+        line.forEach(function (n) {
+          var linked = neighbours[n];
+          desired[n] = linked.length ? linked.reduce(function (t, m) { return t + column[m]; }, 0) / linked.length : column[n];
+        });
+        var members = line.slice().sort(function (a, b) { return (desired[a] - desired[b]) || lowerCmp(a, b); });
+        var slots = bestSlots(members.map(function (n) { return desired[n]; }), cols);
+        members.forEach(function (n, i) { column[n] = slots[i]; });
+      });
+    }
+    return column;
+  }
+
+  function layout(modules, references) {
+    var longest = Math.max.apply(null, modules.map(function (m) { return m.name.length; }));
+    var boxW = Math.trunc(Math.min(Math.max(120, longest * CHAR_W + 24), 220));
+    var groups = {};
+    modules.forEach(function (m) { (groups[m.layer + "|" + m.sublayer] = groups[m.layer + "|" + m.sublayer] || []).push(m.name); });
+    var widest = Math.max.apply(null, Object.keys(groups).map(function (k) { return groups[k].length; }));
+    var cols = Math.max(MIN_COLS, Math.min(MAX_COLS, widest));
+
+    var rowsByLayer = {}, lines = [];
+    LAYERS.forEach(function (layer) {
+      var rows = [];
+      layer.sublayers.forEach(function (sub) {
+        var members = (groups[layer.id + "|" + sub] || []).slice().sort(lowerCmp);
+        if (members.length) {
+          var chunks = [];
+          for (var i = 0; i < members.length; i += cols) chunks.push(members.slice(i, i + cols));
+          rows.push([sub, chunks]);
+          chunks.forEach(function (c) { lines.push(c); });
+        }
+      });
+      rowsByLayer[layer.id] = rows;
+    });
+    var column = orderColumns(lines, cols, references);
+
+    var areaX = MARGIN + LAYER_COL + SUBLAYER_COL;
+    var gridW = cols * boxW + (cols + 1) * CHANNEL_W;
+    var width = Math.max(MIN_WIDTH, Math.trunc(areaX + gridW + MARGIN));
+    var gridLeft = areaX + (width - MARGIN - areaX - gridW) / 2;
+    var grid = { cols: cols, boxW: boxW, colX: [], channelX: [], lines: [] };
+    for (var k = 0; k < cols; k++) grid.colX.push(gridLeft + CHANNEL_W + k * (boxW + CHANNEL_W));
+    for (k = 0; k <= cols; k++) grid.channelX.push(gridLeft + CHANNEL_W / 2 + k * (boxW + CHANNEL_W));
+
+    var boxes = {}, bands = [], y = MARGIN;
+    LAYERS.forEach(function (layer) {
+      var bandTop = y, rowSpecs = [], rows = rowsByLayer[layer.id];
+      if (!rows.length) {
+        var h = BOX_H + 2 * ROW_PAD;
+        rowSpecs.push(["", y, h]);
+        y += h;
+      }
+      rows.forEach(function (row) {
+        var sub = row[0], chunks = row[1], count = chunks.length;
+        var height = count * BOX_H + (count - 1) * BOX_GAP_Y + 2 * ROW_PAD;
+        chunks.forEach(function (chunk, line) {
+          var top = y + ROW_PAD + line * (BOX_H + BOX_GAP_Y);
+          grid.lines.push([top, top + BOX_H]);
+          chunk.forEach(function (name) {
+            var col = column[name];
+            boxes[name] = { x: grid.colX[col], y: top, w: boxW, h: BOX_H, col: col, line: grid.lines.length - 1 };
+          });
+        });
+        rowSpecs.push([sub, y, height]);
+        y += height;
+      });
+      bands.push({ layer: layer, top: bandTop, bottom: y, rows: rowSpecs });
+      y += LAYER_GAP;
+    });
+    return { boxes: boxes, bands: bands, grid: grid, width: width, bottom: y - LAYER_GAP };
+  }
+
+  function Lanes() { this.used = {}; }
+  Lanes.prototype.load = function (k) { return this.used[k] || 0; };
+  Lanes.prototype.take = function (k, low, high) {
+    var n = this.used[k] || 0;
+    this.used[k] = n + 1;
+    var center = (low + high) / 2;
+    var room = Math.max(0, Math.floor(Math.trunc((high - low) / 2 - LANE_STEP) / LANE_STEP));
+    var half = Math.floor((n + 1) / 2);
+    var step = room === 0 ? half : half % (room + 1);
+    return center + (n % 2 ? 1 : -1) * step * LANE_STEP;
+  };
+
+  function corridor(grid, upper, lower) {
+    var lines = grid.lines;
+    var top = upper >= 0 ? lines[upper][1] : lines[lower][0] - ROW_PAD;
+    var bottom = lower < lines.length ? lines[lower][0] : lines[upper][1] + ROW_PAD;
+    return [top, bottom];
+  }
+
+  function assignPorts(boxes, references) {
+    var sides = {}, ports = {};
+    references.forEach(function (r) {
+      var a = boxes[r.from], b = boxes[r.to], out, inn;
+      if (a.line === b.line) { out = "top"; inn = "top"; }
+      else if (b.line > a.line) { out = "bottom"; inn = "top"; }
+      else { out = "top"; inn = "bottom"; }
+      (sides[r.from + "|" + out] = sides[r.from + "|" + out] || { name: r.from, side: out, entries: [] }).entries.push([b.x, r.to, r, "out"]);
+      (sides[r.to + "|" + inn] = sides[r.to + "|" + inn] || { name: r.to, side: inn, entries: [] }).entries.push([a.x, r.from, r, "in"]);
+    });
+    Object.keys(sides).forEach(function (k) {
+      var s = sides[k], box = boxes[s.name];
+      s.entries.sort(function (p, q) { return (p[0] - q[0]) || lowerCmp(p[1], q[1]); });
+      var usable = box.w * 0.7, start = box.x + (box.w - usable) / 2;
+      s.entries.forEach(function (e, i) {
+        var px = start + usable * (i + 1) / (s.entries.length + 1);
+        var py = s.side === "top" ? box.y : box.y + box.h;
+        ports[key(e[2].from, e[2].to) + "|" + e[3]] = [px, py];
+      });
+    });
+    return ports;
+  }
+
+  function route(grid, lanes, a, b, start, end) {
+    var sx = start[0], sy = start[1], ex = end[0], ey = end[1], la = a.line, lb = b.line, c;
+    if (la === lb) {
+      c = corridor(grid, la - 1, la);
+      var yy = lanes.take("h|" + (la - 1) + "|" + la, c[0], c[1]);
+      return [[sx, sy], [sx, yy], [ex, yy], [ex, ey]];
+    }
+    var down = lb > la;
+    var first = down ? [la, la + 1] : [la - 1, la];
+    var last = down ? [lb - 1, lb] : [lb, lb + 1];
+    c = corridor(grid, first[0], first[1]);
+    var y1 = lanes.take("h|" + first.join("|"), c[0], c[1]);
+    if (first[0] === last[0] && first[1] === last[1]) return [[sx, sy], [sx, y1], [ex, y1], [ex, ey]];
+    c = corridor(grid, last[0], last[1]);
+    var y2 = lanes.take("h|" + last.join("|"), c[0], c[1]);
+    var left = Math.min(a.col, b.col), right = Math.max(a.col, b.col) + 1, channel = left, bestScore = Infinity;
+    for (var ch = left; ch <= right; ch++) {
+      var cx0 = grid.channelX[ch];
+      var score = Math.abs(cx0 - sx) + Math.abs(cx0 - ex) + 24 * lanes.load("v|" + ch);
+      if (score < bestScore) { bestScore = score; channel = ch; }
+    }
+    var cx = grid.channelX[channel];
+    var x = lanes.take("v|" + channel, cx - CHANNEL_W / 2 + 4, cx + CHANNEL_W / 2 - 4);
+    return [[sx, sy], [sx, y1], [x, y1], [x, y2], [ex, y2], [ex, ey]];
+  }
+
+  function pathData(points) {
+    var radius = 6;
+    var pts = points.filter(function (p, i) { return i === 0 || p[0] !== points[i - 1][0] || p[1] !== points[i - 1][1]; });
+    var d = ["M" + f(pts[0][0]) + "," + f(pts[0][1])];
+    function toward(fx, fy, tx, ty, dist) {
+      var length = Math.max(Math.abs(tx - fx) + Math.abs(ty - fy), 1e-9);
+      return [fx + (tx - fx) / length * dist, fy + (ty - fy) / length * dist];
+    }
+    for (var i = 1; i < pts.length - 1; i++) {
+      var p = pts[i - 1], c = pts[i], n = pts[i + 1];
+      var r = Math.min(radius, Math.abs(c[0] - p[0]) / 2 + Math.abs(c[1] - p[1]) / 2,
+        Math.abs(n[0] - c[0]) / 2 + Math.abs(n[1] - c[1]) / 2);
+      var b1 = toward(c[0], c[1], p[0], p[1], r), b2 = toward(c[0], c[1], n[0], n[1], r);
+      d.push("L" + f(b1[0]) + "," + f(b1[1]) + " Q" + f(c[0]) + "," + f(c[1]) + " " + f(b2[0]) + "," + f(b2[1]));
+    }
+    d.push("L" + f(pts[pts.length - 1][0]) + "," + f(pts[pts.length - 1][1]));
+    return d.join(" ");
+  }
+
+  function markerPoint(points, taken, boxes) {
+    var radius = 11, segments = [];
+    for (var i = 0; i < points.length - 1; i++) segments.push(i);
+    function len(i) { return Math.abs(points[i + 1][0] - points[i][0]) + Math.abs(points[i + 1][1] - points[i][1]); }
+    segments.sort(function (a, b) { return len(b) - len(a); });
+    function clear(x, y) {
+      for (var t = 0; t < taken.length; t++) if (Math.hypot(taken[t][0] - x, taken[t][1] - y) < 2 * radius + 4) return false;
+      for (var n in boxes) {
+        var bx = boxes[n];
+        if (bx.x - radius < x && x < bx.x + bx.w + radius && bx.y - radius < y && y < bx.y + bx.h + radius) return false;
+      }
+      return true;
+    }
+    var ts = [0.5, 0.35, 0.65, 0.2, 0.8];
+    for (var s = 0; s < segments.length; s++) {
+      var a = points[segments[s]], b = points[segments[s] + 1];
+      for (var j = 0; j < ts.length; j++) {
+        var x = a[0] + (b[0] - a[0]) * ts[j], y = a[1] + (b[1] - a[1]) * ts[j];
+        if (clear(x, y)) return [x, y];
+      }
+    }
+    var p = points[segments[0]], q = points[segments[0] + 1];
+    return [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+  }
+
+  // ---- SVG ---------------------------------------------------------------
+
+  function text(x, y, value, cls, anchor) {
+    return '<text x="' + f(x) + '" y="' + f(y) + '" text-anchor="' + (anchor || "middle") + '" dominant-baseline="central"' +
+      (cls ? ' class="' + cls + '"' : "") + ">" + esc(value) + "</text>";
+  }
+  function wrapLines(value, size, width) {
+    var words = value.split(/\s+/), lines = [], line = "";
+    words.forEach(function (w) {
+      var candidate = (line + " " + w).trim();
+      if (line && candidate.length * size * 0.56 > width) { lines.push(line); line = w; } else line = candidate;
+    });
+    lines.push(line);
+    return lines;
+  }
+  function wrapped(x, y, value, size, cls, width) {
+    var lines = wrapLines(value, size, width), top = y - (lines.length - 1) * size * 0.65;
+    return lines.map(function (l, i) { return text(x, top + i * size * 1.3, l, cls); }).join("");
+  }
+  function fit(name, width) {
+    var room = Math.trunc((width - 16) / (13 * 0.56));
+    return name.length <= room ? name : name.slice(0, Math.max(1, room - 1)) + "…";
+  }
+  function color(v) { return v.kinds.indexOf("cycle") >= 0 ? "purple" : "red"; }
+
+  function renderSvg(model, analysis, keep) {
+    var modules = model.modules.filter(function (m) { return !keep || keep[m.name]; });
+    var names = {};
+    modules.forEach(function (m) { names[m.name] = m; });
+    var references = (model.references || []).filter(function (r) { return names[r.from] && names[r.to]; });
+    var audited = model.audited || null;
+    var violations = {};
+    analysis.violations.forEach(function (v) { violations[key(v.from, v.to)] = v; });
+    var inCycle = {}, owns = {}, unchecked = {};
+    analysis.cycles.forEach(function (c) { c.members.forEach(function (m) { inCycle[m] = c.id; }); });
+    analysis.violations.forEach(function (v) { if (v.kinds.some(function (k) { return k !== "cycle"; })) owns[v.from] = true; });
+    analysis.unchecked.forEach(function (n) { unchecked[n] = true; });
+
+    var L = layout(modules, references), boxes = L.boxes, grid = L.grid, width = L.width;
+    var ports = assignPorts(boxes, references), lanes = new Lanes();
+    var height = Math.ceil(L.bottom + MARGIN);
+    var out = [];
+    out.push('<svg id="canvas" xmlns="http://www.w3.org/2000/svg" width="' + width + '" height="' + height +
+      '" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="' + esc((model.title || "Architecture Canvas") + " diagram") + '">');
+    out.push("<defs>");
+    [["grey", 7], ["red", 6], ["purple", 6], ["ink", 6]].forEach(function (m) {
+      out.push('<marker id="ah-' + m[0] + '" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="' + m[1] + '" markerHeight="' + m[1] +
+        '" orient="auto-start-reverse"><path class="ah-' + m[0] + '" d="M0,0 L10,5 L0,10 z"/></marker>');
+    });
+    out.push("</defs>");
+    out.push('<rect class="canvas-bg" data-bg="1" width="100%" height="100%"/>');
+
+    L.bands.forEach(function (band) {
+      var top = band.top, bottom = band.bottom, layer = band.layer;
+      out.push('<g class="band-' + layer.id + '">');
+      out.push('<rect class="band" x="' + MARGIN + '" y="' + top + '" width="' + (width - 2 * MARGIN) + '" height="' + (bottom - top) + '" rx="4" stroke-width="1.5"/>');
+      out.push('<line class="rule" x1="' + (MARGIN + LAYER_COL) + '" y1="' + top + '" x2="' + (MARGIN + LAYER_COL) + '" y2="' + bottom + '"/>');
+      out.push(wrapped(MARGIN + LAYER_COL / 2, (top + bottom) / 2, layer.title, 14, "layer-title", LAYER_COL - 16));
+      band.rows.forEach(function (row, i) {
+        var sub = row[0], rowTop = row[1], rowH = row[2];
+        if (i) out.push('<line class="rule" x1="' + (MARGIN + LAYER_COL) + '" y1="' + rowTop + '" x2="' + (width - MARGIN) + '" y2="' + rowTop + '"/>');
+        out.push('<line class="rule" stroke-dasharray="3,3" x1="' + (MARGIN + LAYER_COL + SUBLAYER_COL) + '" y1="' + rowTop + '" x2="' + (MARGIN + LAYER_COL + SUBLAYER_COL) + '" y2="' + (rowTop + rowH) + '"/>');
+        if (sub) out.push(wrapped(MARGIN + LAYER_COL + SUBLAYER_COL / 2, rowTop + rowH / 2, sub, 13, "sublayer-title", SUBLAYER_COL - 16));
+        else out.push(text(MARGIN + LAYER_COL + SUBLAYER_COL + 24, rowTop + rowH / 2, "No modules in this layer", "muted", "start"));
+      });
+      out.push("</g>");
+    });
+
+    // Edges: compliant references first, violations on top.
+    var ordered = references.slice().sort(function (a, b) {
+      var va = violations[key(a.from, a.to)] ? 1 : 0, vb = violations[key(b.from, b.to)] ? 1 : 0;
+      return (va - vb) || lowerCmp(a.from, b.from) || lowerCmp(a.to, b.to);
+    });
+    var routes = [];
+    ordered.forEach(function (r) {
+      var k = key(r.from, r.to);
+      var points = route(grid, lanes, boxes[r.from], boxes[r.to], ports[k + "|out"], ports[k + "|in"]);
+      var v = violations[k];
+      routes.push([r, points]);
+      var cls = v ? color(v) : "ok";
+      var tip = v ? v.number + ". " + r.from + " → " + r.to + " (" + CANVAS.violationLabel(v) + ")" : r.from + " → " + r.to;
+      out.push('<g class="edge ' + cls + '" data-from="' + esc(r.from) + '" data-to="' + esc(r.to) + '"' + (v ? ' data-n="' + v.number + '"' : "") + ">" +
+        "<title>" + esc(tip) + '</title><path d="' + pathData(points) + '" marker-end="url(#ah-' + (v ? cls : "grey") + ')"/></g>');
+    });
+
+    // Module boxes, drawn over the edges.
+    modules.slice().sort(function (a, b) { return lowerCmp(a.name, b.name); }).forEach(function (m) {
+      var box = boxes[m.name], cls = ["box"];
+      var platform = (m.owner || "team") === "platform";
+      if (platform) cls.push("platform");
+      if (inCycle[m.name]) cls.push("cycle");
+      if (owns[m.name]) cls.push("owns");
+      if (m.name === audited) cls.push("audited");
+      var tip = m.name + " (" + m.layer + " / " + m.sublayer + (platform ? ", OutSystems or Forge" : "") +
+        (m.name === audited ? ", audited" : "") + (unchecked[m.name] ? ", references not checked" : "") + ")";
+      out.push('<g class="' + cls.join(" ") + '" data-name="' + esc(m.name) + '" tabindex="0" role="button" aria-label="' + esc(tip) + '">' +
+        "<title>" + esc(tip) + "</title>" +
+        '<rect x="' + f(box.x) + '" y="' + f(box.y) + '" width="' + box.w + '" height="' + box.h + '" rx="5"/>' +
+        text(box.x + box.w / 2, box.y + box.h / 2, fit(m.name, box.w), "label"));
+      if (unchecked[m.name]) {
+        out.push('<g class="q"><circle cx="' + f(box.x + box.w - 2) + '" cy="' + f(box.y + 2) + '" r="8"/>' +
+          text(box.x + box.w - 2, box.y + 2.5, "?") + "</g>");
+      }
+      out.push("</g>");
+    });
+
+    // Numbered markers on violating references, drawn last so they stay readable.
+    var taken = [];
+    routes.forEach(function (entry) {
+      var r = entry[0], v = violations[key(r.from, r.to)];
+      if (!v) return;
+      var p = markerPoint(entry[1], taken, boxes);
+      taken.push(p);
+      out.push('<g class="badge ' + color(v) + '" data-n="' + v.number + '"><title>' + esc(v.number + ". " + r.from + " → " + r.to) + "</title>" +
+        '<circle cx="' + f(p[0]) + '" cy="' + f(p[1]) + '" r="10"/>' + text(p[0], p[1], String(v.number)) + "</g>");
+    });
+    out.push("</svg>");
+    return out.join("");
+  }
+
+  // ---- Page --------------------------------------------------------------
+
+  var state = { model: null, analysis: null, focus: null, pinned: null };
+
+  function showError(message) {
+    $("error").innerHTML = "<strong>This canvas can't be drawn.</strong> " + esc(message) +
+      '<br>Fix <span class="mono">os11-audit/architecture-canvas.json</span> and fill the template again.';
+    $("error").hidden = false;
+  }
+
+  function stat(value, label, tone) {
+    return '<span class="stat ' + tone + '"><b>' + value + "</b>" + esc(label) + "</span>";
+  }
+
+  function renderPanels() {
+    var a = state.analysis, model = state.model;
+    var vl = $("violations");
+    vl.innerHTML = a.violations.length ? a.violations.map(function (v) {
+      var c = color(v);
+      return '<li><button type="button" class="vrow" data-n="' + v.number + '">' +
+        '<span class="num ' + c + '">' + v.number + "</span>" +
+        '<span><span class="kind ' + c + '">' + esc(CANVAS.violationLabel(v)) + '</span><br><span class="ref">' +
+        esc(v.from) + " → " + esc(v.to) + "</span></span></button></li>";
+    }).join("") : '<li><p class="empty">No upward, side, or cycle references.</p></li>';
+
+    var cl = $("cycles");
+    cl.innerHTML = a.cycles.length ? a.cycles.map(function (c) {
+      var paths = c.paths.map(function (p) { return '<li class="ref">' + esc(p.concat([p[0]]).join(" → ")) + "</li>"; }).join("");
+      var against = c.break_candidates.length ? '<p class="against">Against the canvas order: <span class="ref">' +
+        esc(c.break_candidates.map(function (e) { return e[0] + " → " + e[1]; }).join(", ")) + "</span></p>" : "";
+      return '<li><button type="button" class="crow" data-cycle="' + c.id + '">' +
+        '<span class="num purple">' + esc(c.id) + "</span>" +
+        '<span><span class="kind purple">' + esc(CANVAS.cycleKind(c) + ", " + c.members.length + " modules") + "</span><br>" +
+        '<span class="ref">' + esc(c.members.join(", ")) + "</span></span>" +
+        '<ul class="paths">' + paths + "</ul>" + against + "</button></li>";
+    }).join("") : '<li><p class="empty">No cycles.</p></li>';
+
+    var gaps = [];
+    if (a.unchecked.length) {
+      gaps.push('<li class="amber">References not checked for <span class="ref">' + esc(a.unchecked.join(", ")) +
+        "</span>. Cycles through these modules can't be ruled out.</li>");
+    }
+    if (model.omitted && model.omitted.length) gaps.push('<li>Not shown: <span class="ref">' + esc(model.omitted.join(", ")) + "</span></li>");
+    $("gaps").innerHTML = gaps.length ? gaps.join("") : '<li><p class="empty" style="margin:0">None. Every team module’s references were checked.</p></li>';
+  }
+
+  function drawCanvas() {
+    var keep = null;
+    if (state.focus && $("focus-view").checked) {
+      keep = {};
+      state.focus.forEach(function (n) { keep[n] = true; });
+    }
+    $("canvas-wrap").innerHTML = renderSvg(state.model, state.analysis, keep);
+    var svg = $("canvas");
+    svg.classList.toggle("hide-ok", !$("show-compliant").checked);
+    svg.addEventListener("mouseover", function (e) {
+      var box = e.target.closest(".box");
+      if (box && !state.pinned) highlight({ type: "module", name: box.getAttribute("data-name") });
+    });
+    svg.addEventListener("mouseout", function (e) {
+      var box = e.target.closest(".box");
+      if (box && !box.contains(e.relatedTarget)) highlight(state.pinned);
+    });
+    svg.addEventListener("click", function (e) {
+      var box = e.target.closest(".box"), badge = e.target.closest(".badge, .edge[data-n]");
+      if (box) pin({ type: "module", name: box.getAttribute("data-name") });
+      else if (badge) pin({ type: "violation", n: badge.getAttribute("data-n") });
+      else pin(null);
+    });
+    svg.addEventListener("keydown", function (e) {
+      var box = e.target.closest(".box");
+      if (box && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); pin({ type: "module", name: box.getAttribute("data-name") }); }
+    });
+    highlight(state.pinned);
+  }
+
+  function same(a, b) { return !!a && !!b && a.type === b.type && a.name === b.name && a.n === b.n && a.id === b.id; }
+
+  function pin(selection) {
+    state.pinned = same(selection, state.pinned) ? null : selection;
+    highlight(state.pinned);
+  }
+
+  function highlight(sel) {
+    var svg = $("canvas");
+    if (!svg) return;
+    var nodes = {}, edges = {}, badges = {};
+    if (sel && sel.type === "module") {
+      nodes[sel.name] = true;
+      (state.model.references || []).forEach(function (r) {
+        if (r.from === sel.name || r.to === sel.name) { edges[key(r.from, r.to)] = true; nodes[r.from] = nodes[r.to] = true; }
+      });
+    } else if (sel && sel.type === "violation") {
+      state.analysis.violations.forEach(function (v) {
+        if (String(v.number) === String(sel.n)) { edges[key(v.from, v.to)] = true; nodes[v.from] = nodes[v.to] = true; }
+      });
+    } else if (sel && sel.type === "cycle") {
+      state.analysis.cycles.forEach(function (c) {
+        if (c.id !== sel.id) return;
+        c.members.forEach(function (m) { nodes[m] = true; });
+      });
+      state.analysis.violations.forEach(function (v) { if (v.cycle === sel.id) edges[key(v.from, v.to)] = true; });
+    }
+    state.analysis.violations.forEach(function (v) { if (edges[key(v.from, v.to)]) badges[v.number] = true; });
+    svg.classList.toggle("has-sel", !!sel);
+    svg.querySelectorAll(".edge").forEach(function (el) {
+      var on = !!edges[key(el.getAttribute("data-from"), el.getAttribute("data-to"))];
+      el.classList.toggle("sel", on);
+      var path = el.querySelector("path");
+      if (el.classList.contains("ok")) path.setAttribute("marker-end", on ? "url(#ah-ink)" : "url(#ah-grey)");
+    });
+    svg.querySelectorAll(".box").forEach(function (el) { el.classList.toggle("sel", !!nodes[el.getAttribute("data-name")]); });
+    svg.querySelectorAll(".badge").forEach(function (el) { el.classList.toggle("sel", !!badges[el.getAttribute("data-n")]); });
+    var pinned = state.pinned;
+    document.querySelectorAll(".vrow").forEach(function (el) {
+      el.classList.toggle("active", !!pinned && pinned.type === "violation" && String(pinned.n) === el.getAttribute("data-n"));
+    });
+    document.querySelectorAll(".crow").forEach(function (el) {
+      el.classList.toggle("active", !!pinned && pinned.type === "cycle" && pinned.id === el.getAttribute("data-cycle"));
+    });
+    $("clear").hidden = !pinned;
+  }
+
+  function start() {
+    var raw = $("canvas-model").textContent.trim(), model;
+    try {
+      model = JSON.parse(raw);
+    } catch (err) {
+      showError(raw === "__CANVAS" + "_MODEL__"
+        ? "No canvas model is embedded in this page yet."
+        : "The embedded canvas model is not valid JSON (" + err.message + ").");
+      return;
+    }
+    try {
+      CANVAS.validate(model);
+    } catch (err) {
+      if (err instanceof CANVAS.CanvasError) { showError("The canvas model is invalid: " + err.message + "."); return; }
+      throw err;
+    }
+    var analysis = CANVAS.analyze(model);
+    state.model = model;
+    state.analysis = analysis;
+    state.focus = CANVAS.focusModules(model, analysis);
+
+    var title = model.title || "Architecture Canvas";
+    document.title = title;
+    $("title").textContent = title;
+    var refs = (model.references || []).length;
+    $("meta").innerHTML = (model.audited ? 'Audited module <span class="mono">' + esc(model.audited) + "</span> · " : "") +
+      model.modules.length + " modules · " + refs + " references";
+    $("stats").innerHTML =
+      stat(analysis.violations.length, analysis.violations.length === 1 ? " violation" : " violations", analysis.violations.length ? "red" : "ok") +
+      stat(analysis.cycles.length, analysis.cycles.length === 1 ? " cycle" : " cycles", analysis.cycles.length ? "purple" : "ok") +
+      stat(analysis.unchecked.length, " not checked", analysis.unchecked.length ? "amber" : "ok") +
+      stat(model.modules.filter(function (m) { return m.owner === "platform"; }).length, " OutSystems or Forge", "ok");
+    if (state.focus) {
+      $("focus-toggle").hidden = false;
+      $("focus-label").textContent = "Focused view (" + state.focus.length + " of " + model.modules.length +
+        " modules: the audited module, its neighbours, and every violation)";
+    }
+    $("model-json").textContent = JSON.stringify(model, null, 2);
+    $("model-details").hidden = false;
+    $("view").hidden = false;
+
+    renderPanels();
+    drawCanvas();
+
+    $("show-compliant").addEventListener("change", function () { $("canvas").classList.toggle("hide-ok", !this.checked); });
+    $("focus-view").addEventListener("change", drawCanvas);
+    $("clear").addEventListener("click", function () { pin(null); });
+    $("violations").addEventListener("click", function (e) {
+      var row = e.target.closest(".vrow");
+      if (row) pin({ type: "violation", n: row.getAttribute("data-n") });
+    });
+    $("cycles").addEventListener("click", function (e) {
+      var row = e.target.closest(".crow");
+      if (row) pin({ type: "cycle", id: row.getAttribute("data-cycle") });
+    });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && state.pinned) pin(null); });
+  }
+
+  start();
+})();
+</script>

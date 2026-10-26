@@ -38,3 +38,14 @@ To re-check after editing the baseline, run every scenario for the skill you cha
 | M01 | `AllExceptions` handler with `Log Error = Yes` that ends at `End` with no `LogMessage`. | No swallowed-exception finding. |
 | M02 | Same handler with `Log Error = No`. | Swallowed-exception finding. |
 | M03 | Module with one unhidden and one hidden TrueChange warning. | One finding for the unhidden warning only, citing its text. |
+
+## Architecture
+
+| ID | Setup | Expected |
+| :--- | :--- | :--- |
+| A01 | `Order_BL` references `Order_CS`, `Order_CS` references `Customer_CS`, and `Customer_CS` references `Order_BL`. | One cycle finding for C1 (indirect, 3 modules) with the path `Order_BL -> Order_CS -> Customer_CS -> Order_BL`, naming `Customer_CS -> Order_BL` as the reference against the canvas order. |
+| A02 | `Customer_CS` references `Order_BL`, with no reference back. | No finding. Side references inside Core are allowed without a cycle. |
+| A03 | The audited module references `Billing_CS`, whose own references the MCP can't show. | No cycle finding through `Billing_CS`. The diagram marks it with **?**, the summary lists it under Gaps, and *Verify in Environment* asks to open `Billing_CS` and re-run the audit. |
+| A04 | The audited `_UI` module references `OutSystemsUI` and `Users`. | Both marked `"owner": "platform"` and drawn dashed. No findings against their own references. |
+| A05 | In Claude, with several modules open, ask "generate an O11 architecture diagram". | `os11-audit-architecture` runs. Claude publishes `os11-audit/architecture-canvas.html` from the template as an Artifact, without writing its own diagram, then gives the text summary and a short paragraph. No Findings sections. |
+| A06 | Same request in an agent that can't publish Artifacts. | The skill runs and shows the SVG and the text summary. |

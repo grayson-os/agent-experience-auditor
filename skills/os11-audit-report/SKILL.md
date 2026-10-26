@@ -21,7 +21,7 @@ Each audit output has an **Audit Context** section, findings with **Evidence** a
 - Keep each finding's Evidence and Confidence fields in the detailed findings.
 - Merge the Platform Controls Relied On and Verify in Environment rows from all four audits into sections 5 and 6, removing duplicates.
 
-The architecture audit also renders an **Architecture Canvas diagram** to `os11-audit/architecture-canvas.svg`, with its model in `os11-audit/architecture-canvas.json`. Check that the SVG exists. Embed it in section 2 of the report and copy the violation list from the architecture output's text summary; do not redraw the diagram or invent references. If the SVG is missing, keep the section heading and write "No architecture diagram was produced. Re-run `os11-audit-architecture` to generate one." in its place.
+The architecture audit also renders an **Architecture Canvas diagram** to `os11-audit/architecture-canvas.svg`, with its model in `os11-audit/architecture-canvas.json`. For more than 15 modules it also writes a focused diagram, `os11-audit/architecture-canvas-focus.svg`. If the architecture audit published the interactive diagram as an Artifact, link it under the diagram as `[Interactive Architecture Canvas](<artifact link>)`. Check that the SVGs exist. Embed them in section 2 of the report and copy the numbered violations, cycles, and gaps from the architecture output's text summary; do not redraw the diagram or invent references. If the SVG is missing, keep the section heading and write "No architecture diagram was produced. Re-run `os11-audit-architecture` to generate one." in its place.
 
 ## Output Structure
 
@@ -51,9 +51,16 @@ Generate the report strictly using this template:
 ### 2. Architecture Canvas Map
 ![Architecture Canvas](architecture-canvas.svg)
 
-| Reference | Violation | Finding |
-| :--- | :--- | :--- |
-| `<Consumer>` -> `<Producer>` | upward / side / cycle | [ARCH-###] |
+If a focused diagram exists, embed it here instead, as `![Architecture Canvas, focused](architecture-canvas-focus.svg)`, and link the full diagram under it: `[Full Architecture Canvas](architecture-canvas.svg)`.
+
+| # | Reference | Violation | Finding |
+| :--- | :--- | :--- | :--- |
+| 1 | `<Consumer>` -> `<Producer>` | upward / side / cycle C1 | [ARCH-###] |
+
+The numbers match the markers on the diagram. Under the table, list each cycle group with its paths, as the summary prints them:
+- **C1** (indirect, 3 modules): `Order_BL -> Order_CS -> Customer_CS -> Order_BL`. Against the canvas order: `Customer_CS -> Order_BL`. [ARCH-###]
+
+If the summary lists modules whose references weren't checked, add: "References were not checked for <modules>, so cycles through them can't be ruled out." and make sure section 6 has the matching check.
 
 Follow with 2 to 3 sentences on the overall layering health across the End User, Core, and Foundation layers: how many references follow the Canvas rules, and which violations stand out. If there are no violations, replace the table with "No upward, side, or cycle references found."
 
