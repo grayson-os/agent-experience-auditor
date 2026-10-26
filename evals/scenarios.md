@@ -47,3 +47,5 @@ To re-check after editing the baseline, run every scenario for the skill you cha
 | A02 | `Customer_CS` references `Order_BL`, with no reference back. | No finding. Side references inside Core are allowed without a cycle. |
 | A03 | The audited module references `Billing_CS`, whose own references the MCP can't show. | No cycle finding through `Billing_CS`. The diagram marks it with **?**, the summary lists it under Gaps, and *Verify in Environment* asks to open `Billing_CS` and re-run the audit. |
 | A04 | The audited `_UI` module references `OutSystemsUI` and `Users`. | Both marked `"owner": "platform"` and drawn dashed. No findings against their own references. |
+| A05 | In Claude, with several modules open, ask "generate an O11 architecture diagram". | `os11-audit-architecture` runs. Claude publishes `os11-audit/architecture-canvas.html` from the template as an Artifact, without writing its own diagram, then gives the text summary and a short paragraph. No Findings sections. |
+| A06 | Same request in an agent that can't publish Artifacts. | The skill runs and shows the SVG and the text summary. |

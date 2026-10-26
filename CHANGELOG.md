@@ -13,6 +13,8 @@ All notable changes to this project are documented here. Versions follow [Semant
 - Modules marked `"owner": "platform"` (OutSystems and Forge) are drawn dashed, and their own references are never flagged.
 - For more than 15 modules, the script also writes a focused diagram with the audited module, its direct references, and every module in a violation or cycle.
 - Unit tests for the diagram script in `tests/`, run by the release workflow.
+- In Claude, the architecture audit publishes the Canvas diagram as an interactive Artifact from a fixed template (`assets/canvas-artifact.html`), filled by `render_canvas.py --html`. Hovering a module traces its references, selecting a violation or cycle highlights it, compliant references can be hidden, and large models open in a focused view. The SVG stays the diagram for other agents and for the report. Tests check that the page's violation and cycle rules agree with the script's.
+- `os11-audit-architecture` handles diagram-only requests: it draws the diagram, summarizes what it shows, and skips the full findings.
 - Shared OutSystems 11 platform baseline (`shared/os11-platform-baseline.md`), targeting Platform Server 11.44.0, with sources. It lists the controls the platform provides, the conditions that bypass them, and what the Service Studio MCP can't see. Each audit skill carries a synced copy in `references/platform-baseline.md`.
 - Every audit checks the baseline before reporting a finding, and adds an Audit Context section plus two closing sections: Platform Controls Relied On and Verify in Environment.
 - Findings in all four audits carry Evidence and Confidence (Confirmed or Likely). Security findings also name the platform control considered.
@@ -22,6 +24,8 @@ All notable changes to this project are documented here. Versions follow [Semant
 - `scripts/sync_baseline.py`, run by the release workflow with `--check`, and test scenarios in `evals/scenarios.md`.
 
 ### Changed
+
+- `os11-audit-architecture` now triggers on requests to generate, draw, or visualize an O11 architecture diagram, Canvas, module map, or dependency graph, instead of Claude drawing its own diagram.
 
 - The Canvas diagram is easier to read: compliant references are thin and grey, violations carry a number that points to a list under the diagram instead of a text label, modules are placed to keep references straight, and the canvas widens with the number of modules.
 - Side references inside Core and Foundation are reported only when they are part of a cycle.

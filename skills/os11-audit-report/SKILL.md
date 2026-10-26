@@ -21,7 +21,7 @@ Each audit output has an **Audit Context** section, findings with **Evidence** a
 - Keep each finding's Evidence and Confidence fields in the detailed findings.
 - Merge the Platform Controls Relied On and Verify in Environment rows from all four audits into sections 5 and 6, removing duplicates.
 
-The architecture audit also renders an **Architecture Canvas diagram** to `os11-audit/architecture-canvas.svg`, with its model in `os11-audit/architecture-canvas.json`. For more than 15 modules it also writes a focused diagram, `os11-audit/architecture-canvas-focus.svg`. Check that the SVGs exist. Embed them in section 2 of the report and copy the numbered violations, cycles, and gaps from the architecture output's text summary; do not redraw the diagram or invent references. If the SVG is missing, keep the section heading and write "No architecture diagram was produced. Re-run `os11-audit-architecture` to generate one." in its place.
+The architecture audit also renders an **Architecture Canvas diagram** to `os11-audit/architecture-canvas.svg`, with its model in `os11-audit/architecture-canvas.json`. For more than 15 modules it also writes a focused diagram, `os11-audit/architecture-canvas-focus.svg`. If the architecture audit published the interactive diagram as an Artifact, link it under the diagram as `[Interactive Architecture Canvas](<artifact link>)`. Check that the SVGs exist. Embed them in section 2 of the report and copy the numbered violations, cycles, and gaps from the architecture output's text summary; do not redraw the diagram or invent references. If the SVG is missing, keep the section heading and write "No architecture diagram was produced. Re-run `os11-audit-architecture` to generate one." in its place.
 
 ## Output Structure
 

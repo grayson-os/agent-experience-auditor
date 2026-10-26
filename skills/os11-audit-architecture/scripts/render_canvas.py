@@ -2,7 +2,7 @@
 """Render an OutSystems 11 Architecture Canvas diagram as SVG.
 
 Usage:
-    python3 render_canvas.py <canvas.json> <canvas.svg>
+    python3 render_canvas.py <canvas.json> <canvas.svg> [--html <canvas.html>]
 
 The input JSON lists modules (with layer and sub-layer) and module-to-module
 references (consumer -> producer). The script validates the model, detects
@@ -12,6 +12,9 @@ summary of the canvas, its violations, its cycles, and any gaps in the model.
 When the model has more than FOCUS_THRESHOLD modules, the script also writes a
 focused diagram next to the SVG (<name>-focus.svg) that keeps the audited
 module, its direct references, and every module involved in a violation.
+
+With --html, the script also fills the interactive Artifact template
+(assets/canvas-artifact.html) with the model and writes it to the given path.
 
 Requires Python 3.8+ and the standard library only.
 """
@@ -75,6 +78,9 @@ FONT = "Segoe UI, Helvetica, Arial, sans-serif"
 
 # Models with more modules than this also get a focused diagram.
 FOCUS_THRESHOLD = 15
+
+TEMPLATE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "canvas-artifact.html")
+PLACEHOLDER = "__CANVAS_MODEL__"
 
 INK = "#1a1a1a"
 MUTED = "#555555"
@@ -934,6 +940,23 @@ def summary(model, analysis):
     return "\n".join(lines)
 
 
+def artifact_html(model):
+    """The interactive Artifact template with the model embedded in it."""
+    try:
+        with open(TEMPLATE, encoding="utf-8") as handle:
+            template = handle.read()
+    except OSError as exc:
+        fail("cannot read the Artifact template {}: {}".format(TEMPLATE, exc))
+    if template.count(PLACEHOLDER) != 1:
+        fail("the Artifact template must contain {} exactly once".format(PLACEHOLDER))
+    # Escape <, > and & so the JSON can't close its <script> element.
+    data = json.dumps(model, indent=2, ensure_ascii=False)
+    data = data.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
+    title = escape(model.get("title") or "Architecture Canvas")
+    template = template.replace("<title>Architecture Canvas</title>", "<title>{}</title>".format(title), 1)
+    return template.replace(PLACEHOLDER, data)
+
+
 def focus_path(path):
     root, ext = os.path.splitext(path)
     return root + "-focus" + (ext or ".svg")
@@ -948,7 +971,10 @@ def write(path, content):
 
 
 def main(argv):
-    if len(argv) != 3:
+    html_path = None
+    if len(argv) == 5 and argv[3] == "--html":
+        html_path = argv[4]
+    elif len(argv) != 3:
         print(__doc__.strip(), file=sys.stderr)
         sys.exit(2)
     model = load_model(argv[1])
@@ -964,6 +990,10 @@ def main(argv):
         target = focus_path(argv[2])
         write(target, render(model, analysis, keep, note))
         written.append(target)
+
+    if html_path:
+        write(html_path, artifact_html(model))
+        written.append(html_path)
 
     print(summary(model, analysis))
     for path in written:

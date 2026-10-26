@@ -17,7 +17,7 @@ This toolkit provides:
 
 | Skill | Phase | What it checks |
 | :--- | :--- | :--- |
-| `os11-audit-architecture` | 1 | Architecture Canvas layers, upward/side/circular references, entity exposure, logic placement. Draws a Canvas diagram of module references |
+| `os11-audit-architecture` | 1 | Architecture Canvas layers, upward/side/circular references, entity exposure, logic placement. Draws a Canvas diagram of module references, as an interactive Artifact in Claude and as SVG everywhere |
 | `os11-audit-security` | 2 | Role checks on public actions, multi-tenancy, SQL injection, XSS, unauthenticated APIs, sensitive data |
 | `os11-audit-performance` | 3 | Queries in loops, indexes, unbounded queries, payload size, session state, caching |
 | `os11-audit-maintainability` | 4 | Exception handling, dead code, monolithic actions, hardcoded values, naming |
@@ -37,7 +37,8 @@ This toolkit provides:
 │   │   ├── SKILL.md                         # Canvas layers, references, boundary leaks
 │   │   ├── references/canvas-diagram.md     # Layer/sub-layer classification and diagram steps
 │   │   ├── references/platform-baseline.md  # Synced copy of the platform baseline (also in the other audit skills)
-│   │   ├── scripts/render_canvas.py         # Renders the Canvas diagram as SVG and detects violations
+│   │   ├── scripts/render_canvas.py         # Renders the Canvas diagram as SVG and HTML and detects violations
+│   │   ├── assets/canvas-artifact.html      # Interactive Canvas diagram template, published as an Artifact
 │   │   └── assets/example-canvas.json       # Example diagram model
 │   ├── os11-audit-security/SKILL.md         # OWASP, RBAC checks, injection vulnerabilities
 │   ├── os11-audit-performance/SKILL.md      # Database I/O, queries in loops, caching
@@ -51,6 +52,7 @@ This toolkit provides:
 │   └── scenarios.md               # Test scenarios for platform-aware findings
 ├── tests/
 │   ├── test_render_canvas.py      # Unit tests for the Canvas diagram script
+│   ├── test_canvas_artifact.py    # Checks the interactive diagram agrees with the script (needs Node.js)
 │   └── fixtures/                  # Canvas models used by the tests
 ├── CHANGELOG.md
 ├── LICENSE
@@ -61,7 +63,7 @@ This toolkit provides:
 
 1. **Service Studio 11.55.91 or later**, which embeds the OutSystems 11 MCP server. See the [OutSystems 11 MCP documentation](https://success.outsystems.com/documentation/11/outsystems_mcp/).
 2. **An MCP-compatible coding agent**, such as Claude Code, Cursor, GitHub Copilot, Codex, Kiro, or Google Antigravity.
-3. **Python 3.8 or later** (standard library only), so the architecture audit can render its Canvas diagram. Without it, the audit still runs but skips the diagram.
+3. **Python 3.8 or later** (standard library only), so the architecture audit can render its Canvas diagram. Without it, Claude can still publish the interactive diagram from the template; other agents skip the diagram.
 4. **Node.js** (for `npx`), only if you install with the cross-agent installer.
 
 ## Installation
@@ -304,14 +306,16 @@ After changing an entry, re-run the matching scenarios in [`evals/scenarios.md`]
 
 ### Checking the Canvas Diagram
 
-To check the Canvas diagram without Service Studio, render the example model and open the SVG in a browser:
+To check the Canvas diagram without Service Studio, render the example model and open the SVG and the HTML page in a browser:
 
 ```bash
 python3 skills/os11-audit-architecture/scripts/render_canvas.py \
-  skills/os11-audit-architecture/assets/example-canvas.json example-canvas.svg
+  skills/os11-audit-architecture/assets/example-canvas.json example-canvas.svg --html example-canvas.html
 ```
 
-Run the script's unit tests from the repository root (standard library only):
+The HTML page is what Claude publishes as an Artifact. It runs its own copy of the violation and cycle rules in JavaScript; `tests/test_canvas_artifact.py` runs that copy under Node.js and checks it agrees with the script on the fixtures and a few hundred random models. If you change the rules in one, change the other.
+
+Run the tests from the repository root (standard library only; the parity tests are skipped without Node.js):
 
 ```bash
 python3 -m unittest discover -s tests

@@ -2,6 +2,13 @@
 
 Draw the module topology on the OutSystems Architecture Canvas by writing a small JSON model and rendering it with `scripts/render_canvas.py`. The script lays the canvas out as three full-width layers stacked in a single column (End User, Core, Foundation), splits each layer into its sub-layers, draws every reference, and highlights violations.
 
+The same model drives two outputs:
+
+- **Interactive diagram** (`architecture-canvas.html`), from the template in [../assets/canvas-artifact.html](../assets/canvas-artifact.html). It is the primary diagram wherever you can publish an Artifact, such as Claude.
+- **SVG diagram** (`architecture-canvas.svg`), for agents and viewers without Artifacts, and for the final report.
+
+Both use the same layout and the same rules, so their violation numbers, cycles, and gaps match.
+
 There is **no Orchestration layer**. Never use it, in the diagram or anywhere else in the audit.
 
 ## 1. Classify Each Module
@@ -83,8 +90,10 @@ Save the model as `os11-audit/architecture-canvas.json` in the current working d
 Run the script from this skill's directory with Python 3.8 or later (no packages needed). Use `python3` on macOS and Linux, and `py -3` or `python` on Windows:
 
 ```bash
-python3 <skill-directory>/scripts/render_canvas.py os11-audit/architecture-canvas.json os11-audit/architecture-canvas.svg
+python3 <skill-directory>/scripts/render_canvas.py os11-audit/architecture-canvas.json os11-audit/architecture-canvas.svg --html os11-audit/architecture-canvas.html
 ```
+
+Leave out `--html os11-audit/architecture-canvas.html` only when you know you can't publish or open an HTML page.
 
 The script:
 
@@ -96,13 +105,24 @@ The script:
 - **Groups cycles** as `C1`, `C2`, and so on: each group is a set of modules that all reach each other. For each group it prints every distinct path, and the references in it that point up the canvas order (for example a Core Service module referencing Composite Logic). Those are usually the references to remove.
 - **Numbers every violation.** The diagram puts the number on the reference and lists the violations, cycles, and gaps below the canvas, so the arrows carry no text. Compliant references are drawn thin and grey so the violations stand out.
 - **Writes a focused diagram** when the model has more than 15 modules: `architecture-canvas-focus.svg`, next to the full one, with the audited module, the modules it references or is referenced by, and every module in a violation or cycle. Violation numbers match the full diagram.
+- **Writes the interactive diagram** with `--html`: a copy of the template with the model embedded in it.
 - **Prints a plain-text summary** of the canvas, violations, cycles, and gaps.
 
 Every upward or side violation the script prints must have a matching `[ARCH-###]` finding, and every cycle group must have one finding that lists its paths. Every upward, side, or cycle finding must appear in the script's output. If they disagree, correct the model or the findings before you finish.
 
-If Python is not available, say so, keep the JSON file, and tell the user they can render it later with the command above. Report the reference violations from your own analysis instead.
+If Python is not available, say so and keep the JSON file. When you can publish an Artifact, fill the template by hand (section 6) and publish it, since the page computes the violations itself. Otherwise tell the user they can render the diagram later with the command above. Either way, report the reference violations from your own analysis, and check them against the page if you published one.
 
 ## 5. Show It
 
-- **In the audit output**: under `## Architecture Canvas Diagram`, give the SVG path, embed it with `![Architecture Canvas](os11-audit/architecture-canvas.svg)`, and paste the script's text summary in a `text` code block. If the script wrote a focused diagram, embed it first with `![Architecture Canvas, focused](os11-audit/architecture-canvas-focus.svg)` and link the full one under it. Terminals show the summary; Markdown viewers show the image.
-- **In the final report**: the `os11-audit-report` skill embeds the same SVGs.
+- **As an Artifact (primary, when you can publish one)**: publish `os11-audit/architecture-canvas.html` exactly as the script wrote it, with whatever Artifact tool you have (for example the `Artifact` tool with `file_path` set to that file). Don't edit the page, restyle it, or rebuild it in another format: its analysis is tested against the script's. If the tool needs a title, use the model's `title`; if it asks for a description, use "OutSystems 11 Architecture Canvas with numbered upward, side, and cycle violations." Republish the same file when you re-run the audit, so the link stays the same. The page shows the canvas, the numbered violations, every cycle with its paths, and the gaps. Hovering or selecting a module traces its references, selecting a violation or cycle highlights it, compliant references can be hidden, and models with more than 15 modules open in the focused view with a switch to the full canvas.
+- **In the audit output**: under `## Architecture Canvas Diagram`, link the Artifact if you published one, give the SVG path, embed it with `![Architecture Canvas](os11-audit/architecture-canvas.svg)`, and paste the script's text summary in a `text` code block. If the script wrote a focused diagram, embed it first with `![Architecture Canvas, focused](os11-audit/architecture-canvas-focus.svg)` and link the full one under it. Terminals show the summary; Markdown viewers show the image.
+- **In the final report**: the `os11-audit-report` skill embeds the same SVGs, since a Markdown report can't embed an Artifact. It links the Artifact if there is one.
+
+## 6. Filling the Template Without Python
+
+Only when Python isn't available: copy [../assets/canvas-artifact.html](../assets/canvas-artifact.html) to `os11-audit/architecture-canvas.html` without changing anything else, and make two replacements:
+
+1. Replace the line `__CANVAS_MODEL__` (inside `<script type="application/json" id="canvas-model">`) with the JSON model. Write `<` as `\u003c` in any string so the model can't close the script element.
+2. Replace `<title>Architecture Canvas</title>` with the model's title.
+
+The page validates the model when it opens. If the model is invalid it shows the error instead of a diagram; fix the JSON and fill the template again.
