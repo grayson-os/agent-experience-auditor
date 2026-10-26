@@ -49,6 +49,9 @@ This toolkit provides:
 │   └── sync_baseline.py           # Copies the baseline into each audit skill; --check fails on drift
 ├── evals/
 │   └── scenarios.md               # Test scenarios for platform-aware findings
+├── tests/
+│   ├── test_render_canvas.py      # Unit tests for the Canvas diagram script
+│   └── fixtures/                  # Canvas models used by the tests
 ├── CHANGELOG.md
 ├── LICENSE
 └── README.md
@@ -231,7 +234,7 @@ Each audit also starts with an **Audit Context** section (app type, authenticati
 ### 2. Consolidated Executive Report (Step 5)
 The synthesis phase outputs a Markdown document containing:
 - **Executive Summary & Risk Distribution Matrix**: Quantified count of Critical, High, Medium, and Low risks by pillar, with how many are Likely rather than Confirmed, and one sentence on what the audit couldn't inspect.
-- **Architecture Canvas Map**: An SVG diagram of the modules on the End User, Core, and Foundation layers, stacked in one column with each layer split into its sub-layers, with arrows for each reference and violations highlighted in red. The report embeds it from `os11-audit/architecture-canvas.svg`, so it shows in GitHub, GitLab, VS Code, and other Markdown viewers; in a terminal you see a text summary instead.
+- **Architecture Canvas Map**: An SVG diagram of the modules on the End User, Core, and Foundation layers, stacked in one column with each layer split into its sub-layers. Compliant references are thin grey arrows. Upward and side references are red and cycles are purple, each with a number that points to the violation list under the diagram, which also gives every cycle's full path, direct or indirect. Modules whose references the audit couldn't check are marked with a **?**. For more than 15 modules, the report shows a focused diagram of the audited module, its neighbours, and every violation, and links the full one. The report embeds it from `os11-audit/architecture-canvas.svg`, so it shows in GitHub, GitLab, VS Code, and other Markdown viewers; in a terminal you see a text summary instead.
 - **Prioritized Roadmap**: Sequenced checklist of mandatory refactors based on risk severity and implementation effort.
 - **Detailed Remediation Catalog**: Fully expanded technical findings grouped by pillar for developer handover.
 - **Platform-Provided Controls**: The OutSystems protections the application relies on, and the warning that they hold only while the team doesn't bypass them.
@@ -306,6 +309,12 @@ To check the Canvas diagram without Service Studio, render the example model and
 ```bash
 python3 skills/os11-audit-architecture/scripts/render_canvas.py \
   skills/os11-audit-architecture/assets/example-canvas.json example-canvas.svg
+```
+
+Run the script's unit tests from the repository root (standard library only):
+
+```bash
+python3 -m unittest discover -s tests
 ```
 
 ## Releasing (Maintainers)
