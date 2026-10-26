@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented here. Versions follow [Semantic Versioning](https://semver.org/), and each version matches a `vX.Y.Z` tag and GitHub release.
 
-## [1.1.0] - Unreleased
+## [1.1.0] - 2026-10-26
 
 ### Added
 
@@ -26,7 +26,6 @@ All notable changes to this project are documented here. Versions follow [Semant
 ### Changed
 
 - `os11-audit-architecture` now triggers on requests to generate, draw, or visualize an O11 architecture diagram, Canvas, module map, or dependency graph, instead of Claude drawing its own diagram.
-
 - The Canvas diagram is easier to read: compliant references are thin and grey, violations carry a number that points to a list under the diagram instead of a text label, modules are placed to keep references straight, and the canvas widens with the number of modules.
 - Side references inside Core and Foundation are reported only when they are part of a cycle.
 - Module classification follows the Architecture Canvas sub-layers. There is no Orchestration layer, and Integration Services (`_IS`) are classified as Foundation instead of Core.

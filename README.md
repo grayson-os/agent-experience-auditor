@@ -168,10 +168,10 @@ To stay on one version instead of tracking the latest release, install from its 
 
 ```bash
 # Claude Code
-claude plugin marketplace add grayson-os/agent-experience-auditor#v1.0.0
+claude plugin marketplace add grayson-os/agent-experience-auditor#v1.1.0
 
 # Other agents
-npx skills add https://github.com/grayson-os/agent-experience-auditor/tree/v1.0.0
+npx skills add https://github.com/grayson-os/agent-experience-auditor/tree/v1.1.0
 ```
 
 To move to a newer pinned version, remove the old install and repeat with the new tag.
